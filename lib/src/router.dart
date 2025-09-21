@@ -23,7 +23,7 @@ class AppRouter {
   static const register = '/register';
   static const home = '/home';
 
-  // rutas internas
+  // rutas internas 2 versio
   static const formulas = '/formulas';
   static const physics = '/formulas/physics';
   static const math = '/formulas/math';
