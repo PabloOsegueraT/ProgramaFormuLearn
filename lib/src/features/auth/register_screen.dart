@@ -223,8 +223,8 @@ class _StepOne extends StatelessWidget {
   }
 }
 
-/// Paso 2 – Test de aprendizaje
-class _StepTwo extends StatelessWidget {
+/// Paso 2 – Test de aprendizaje VARK (completo) + minutos y materia
+class _StepTwo extends StatefulWidget {
   const _StepTwo({
     required this.prefLearning,
     required this.onPrefLearning,
@@ -234,22 +234,161 @@ class _StepTwo extends StatelessWidget {
     required this.onToggleSubject,
   });
 
-  final String? prefLearning;
+  final String? prefLearning; // 'visual' | 'ejemplos' | 'lectura'
   final ValueChanged<String> onPrefLearning;
 
-  final String? dailyMinutes;
+  final String? dailyMinutes; // '10-15' | '20-30' | '40+'
   final ValueChanged<String> onDailyMinutes;
 
-  final Set<String> mainSubjects;
+  final Set<String> mainSubjects; // {'Matemáticas', 'Física', 'Química'}
   final ValueChanged<String> onToggleSubject;
 
   @override
+  State<_StepTwo> createState() => _StepTwoState();
+}
+
+class _StepTwoState extends State<_StepTwo> {
+  // Respuestas del VARK: por índice guardo 'V' | 'A' | 'R' | 'K'
+  final Map<int, String> _answers = {};
+  String? _resultado; // 'V' | 'A' | 'R' | 'K'
+
+  // Preguntas (tipadas correctamente para evitar Object)
+  final List<Map<String, Object>> _questions = [
+    {
+      'q': 'Cuando aprendes un tema nuevo, prefieres…',
+      'options': <String, String>{
+        'Ver esquemas o diagramas': 'V',
+        'Escuchar explicaciones': 'A',
+        'Leer un texto o manual': 'R',
+        'Probarlo con un ejemplo': 'K',
+      }
+    },
+    {
+      'q': 'Si te pierdes en una ciudad, eliges…',
+      'options': <String, String>{
+        'Usar un mapa': 'V',
+        'Preguntar a alguien': 'A',
+        'Leer indicaciones/señales': 'R',
+        'Explorar caminando': 'K',
+      }
+    },
+    {
+      'q': 'Para recordar una fórmula, prefieres…',
+      'options': <String, String>{
+        'Verla en un gráfico': 'V',
+        'Repetirla en voz alta': 'A',
+        'Escribirla en tus notas': 'R',
+        'Aplicarla en ejercicios': 'K',
+      }
+    },
+    {
+      'q': 'Estudiando para un examen te sirve más…',
+      'options': <String, String>{
+        'Mapas conceptuales/diagramas': 'V',
+        'Explicarlo con alguien': 'A',
+        'Resumir y releer apuntes': 'R',
+        'Resolver problemas prácticos': 'K',
+      }
+    },
+    {
+      'q': 'Si alguien explica un aparato…',
+      'options': <String, String>{
+        'Ver un esquema de piezas': 'V',
+        'Escuchar los pasos': 'A',
+        'Leer el manual': 'R',
+        'Tocarlo y probarlo': 'K',
+      }
+    },
+    {
+      'q': 'En un curso online te atrae más…',
+      'options': <String, String>{
+        'Gráficos y presentaciones': 'V',
+        'Audios o videos explicativos': 'A',
+        'Textos descargables': 'R',
+        'Ejercicios interactivos': 'K',
+      }
+    },
+    {
+      'q': 'Para entender una receta…',
+      'options': <String, String>{
+        'Ver imágenes de los pasos': 'V',
+        'Que alguien te la cuente': 'A',
+        'Leer los pasos escritos': 'R',
+        'Hacerla tú mismo/a': 'K',
+      }
+    },
+    {
+      'q': 'Aprendiendo software nuevo…',
+      'options': <String, String>{
+        'Ver capturas/diagramas': 'V',
+        'Escuchar a alguien explicarlo': 'A',
+        'Leer tutorial escrito': 'R',
+        'Explorar probando botones': 'K',
+      }
+    },
+  ];
+
+  void _calcularResultado() {
+    final counts = {'V': 0, 'A': 0, 'R': 0, 'K': 0};
+    for (final v in _answers.values) {
+      counts[v] = (counts[v] ?? 0) + 1;
+    }
+    String top = 'V';
+    counts.forEach((k, v) {
+      if (v > (counts[top] ?? 0)) top = k;
+    });
+
+    setState(() => _resultado = top);
+
+    // Mapeo al estado del padre (tu variable prefLearning)
+    // V -> 'visual', A -> 'ejemplos' (oral/explicar), R -> 'lectura', K -> 'ejemplos'
+    // (Puedes ajustar esta traducción si prefieres otras etiquetas)
+    final mapToParent = {
+      'V': 'visual',
+      'A': 'ejemplos',
+      'R': 'lectura',
+      'K': 'ejemplos',
+    };
+    widget.onPrefLearning(mapToParent[top]!);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    Widget chip(String text, bool selected, VoidCallback onTap) {
+    final cs = Theme.of(context).colorScheme;
+
+    // Helpers UI locales para mantener tu API intacta
+    Widget choice(String label, bool sel, VoidCallback onTap, IconData icon) {
       return ChoiceChip(
-        label: Text(text),
-        selected: selected,
+        label: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 18),
+            const SizedBox(width: 6),
+            Flexible(child: Text(label)),
+          ],
+        ),
+        selected: sel,
         onSelected: (_) => onTap(),
+        selectedColor: cs.primaryContainer,
+        labelStyle: TextStyle(fontWeight: sel ? FontWeight.w700 : FontWeight.w500),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      );
+    }
+
+    Widget filt(String label, bool sel, VoidCallback onTap, IconData icon) {
+      return FilterChip(
+        label: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 18),
+            const SizedBox(width: 6),
+            Text(label),
+          ],
+        ),
+        selected: sel,
+        onSelected: (_) => onTap(),
+        selectedColor: cs.primaryContainer,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       );
@@ -259,82 +398,209 @@ class _StepTwo extends StatelessWidget {
       key: const ValueKey('step2'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Test de aprendizaje',
+        // HEADER
+        Text('Test de aprendizaje (VARK)',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.w700,
             )),
         const SizedBox(height: 6),
-        Text('Ayúdanos a personalizar tus repasos',
+        Text('Responde cómo prefieres aprender. Al final calcularemos tu perfil.',
             style: Theme.of(context).textTheme.bodyMedium),
         const SizedBox(height: 16),
 
-        _SubHeader('¿Cómo aprendes mejor?'),
-        Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          children: [
-            chip('Videos/visual', prefLearning == 'visual',
-                    () => onPrefLearning('visual')),
-            chip('Ejemplos prácticos', prefLearning == 'ejemplos',
-                    () => onPrefLearning('ejemplos')),
-            chip('Lecturas/conceptos', prefLearning == 'lectura',
-                    () => onPrefLearning('lectura')),
-          ],
+        // VARK QUESTIONS
+        ...List.generate(_questions.length, (i) {
+          final q = _questions[i];
+          final String questionText = q['q'] as String;
+          final Map<String, String> options =
+          q['options'] as Map<String, String>;
+          final selected = _answers[i];
+
+          return Card(
+            margin: const EdgeInsets.only(bottom: 12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(questionText,
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleMedium
+                          ?.copyWith(fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 8),
+                  ...options.entries.map((e) {
+                    final sel = selected == e.value;
+                    return RadioListTile<String>(
+                      title: Text(e.key),
+                      value: e.value,
+                      groupValue: selected,
+                      activeColor: cs.primary,
+                      onChanged: (val) => setState(() => _answers[i] = val!),
+                    );
+                  }).toList(),
+                ],
+              ),
+            ),
+          );
+        }),
+
+        const SizedBox(height: 8),
+        Center(
+          child: FilledButton.icon(
+            onPressed: _answers.length == _questions.length ? _calcularResultado : null,
+            icon: const Icon(Icons.check_circle),
+            label: const Text('Calcular resultado'),
+          ),
         ),
+
+        // RESULTADO VARK
+        if (_resultado != null) ...[
+          const SizedBox(height: 16),
+          _ResultCardVark(tipo: _resultado!),
+        ],
+
+        const SizedBox(height: 20),
+
+        // MINUTOS DIARIOS (conservado para tu paso 3)
+        Text('¿Cuántos minutos al día quieres estudiar?',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+        const SizedBox(height: 8),
+        Card(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                choice('10–15', widget.dailyMinutes == '10-15',
+                        () => widget.onDailyMinutes('10-15'), Icons.timer_outlined),
+                choice('20–30', widget.dailyMinutes == '20-30',
+                        () => widget.onDailyMinutes('20-30'), Icons.schedule_outlined),
+                choice('40+', widget.dailyMinutes == '40+',
+                        () => widget.onDailyMinutes('40+'), Icons.av_timer_outlined),
+              ],
+            ),
+          ),
+        ),
+
         const SizedBox(height: 16),
 
-        _SubHeader('¿Cuántos minutos al día quieres estudiar?'),
-        Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          children: [
-            chip('10–15', dailyMinutes == '10-15',
-                    () => onDailyMinutes('10-15')),
-            chip('20–30', dailyMinutes == '20-30',
-                    () => onDailyMinutes('20-30')),
-            chip('40+', dailyMinutes == '40+', () => onDailyMinutes('40+')),
-          ],
-        ),
-        const SizedBox(height: 16),
-
-        _SubHeader('Materia principal de interés'),
-        Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          children: [
-            FilterChip(
-              label: const Text('Matemáticas'),
-              selected: mainSubjects.contains('Matemáticas'),
-              onSelected: (_) => onToggleSubject('Matemáticas'),
-              shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              padding:
-              const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        // MATERIA PRINCIPAL (conservado para tu paso 3)
+        Text('Materia principal de interés',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+        const SizedBox(height: 8),
+        Card(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                filt('Matemáticas', widget.mainSubjects.contains('Matemáticas'),
+                        () => widget.onToggleSubject('Matemáticas'), Icons.calculate_outlined),
+                filt('Física', widget.mainSubjects.contains('Física'),
+                        () => widget.onToggleSubject('Física'), Icons.science_outlined),
+                filt('Química', widget.mainSubjects.contains('Química'),
+                        () => widget.onToggleSubject('Química'), Icons.bubble_chart_outlined),
+              ],
             ),
-            FilterChip(
-              label: const Text('Física'),
-              selected: mainSubjects.contains('Física'),
-              onSelected: (_) => onToggleSubject('Física'),
-              shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              padding:
-              const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            ),
-            FilterChip(
-              label: const Text('Química'),
-              selected: mainSubjects.contains('Química'),
-              onSelected: (_) => onToggleSubject('Química'),
-              shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              padding:
-              const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            ),
-          ],
+          ),
         ),
       ],
     );
   }
 }
+
+class _ResultCardVark extends StatelessWidget {
+  const _ResultCardVark({required this.tipo}); // 'V' 'A' 'R' 'K'
+  final String tipo;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final map = {
+      'V': {
+        'titulo': 'Visual',
+        'tip': 'Usa diagramas, mapas mentales, colores y esquemas; convierte ideas en imágenes.',
+        'icon': Icons.insights_outlined,
+      },
+      'A': {
+        'titulo': 'Aural',
+        'tip': 'Explica en voz alta, escucha resúmenes, debate y usa grabaciones.',
+        'icon': Icons.record_voice_over_outlined,
+      },
+      'R': {
+        'titulo': 'Lectura/Escritura',
+        'tip': 'Haz resúmenes y glosarios; reescribe con tus palabras y usa listas.',
+        'icon': Icons.menu_book_outlined,
+      },
+      'K': {
+        'titulo': 'Kinestésico',
+        'tip': 'Aprende haciendo; ejercicios, simulaciones, laboratorios y casos reales.',
+        'icon': Icons.handyman_outlined,
+      },
+    };
+    final data = map[tipo]!;
+
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Icon(data['icon'] as IconData, size: 36),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Tu estilo predominante: ${data['titulo']}',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      )),
+                  const SizedBox(height: 6),
+                  Text(data['tip'] as String),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Nota: Es una preferencia, no una etiqueta fija. Combina estrategias según el contenido.',
+                    style: TextStyle(color: cs.onSurfaceVariant),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BarVark extends StatelessWidget {
+  const _BarVark({required this.label, required this.value});
+  final String label;
+  final double value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('$label — ${(value * 100).round()}%'),
+        const SizedBox(height: 4),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: LinearProgressIndicator(value: value, minHeight: 8),
+        ),
+      ],
+    );
+  }
+}
+
+
 
 /// Paso 3 – Resumen
 class _StepThree extends StatelessWidget {

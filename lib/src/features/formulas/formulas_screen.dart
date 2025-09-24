@@ -20,7 +20,7 @@ class FormulasScreen extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         children: [
           _SubjectCard(
-            icon: Icons.science_outlined,
+            icon: Icons.functions,
             title: 'Física',
             subtitle: 'Cinemática, dinamica, energía…',
             onTap: () => Navigator.pushNamed(context, AppRouter.physics), // ← AQUI
@@ -34,7 +34,7 @@ class FormulasScreen extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           _SubjectCard(
-            icon: Icons.biotech_outlined,
+            icon: Icons.science_outlined,
             title: 'Química',
             subtitle: 'Estequiometría, gases, pH (demo)',
             onTap: () => Navigator.pushNamed(context, AppRouter.chemistry),

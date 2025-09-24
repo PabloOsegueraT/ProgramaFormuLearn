@@ -16,6 +16,11 @@ import 'features/settings/settings_screen.dart';
 import 'features/formulas/physics_screen.dart';
 import 'features/formulas/math_screen.dart';
 import 'features/formulas/chemistry_screen.dart';
+import 'features/teacher/teacher_home_screen.dart';
+import 'features/classes/student_classes_screen.dart';
+import 'features/teacher/teacher_analytics_screen.dart';
+import 'features/teacher/teacher_student_detail_screen.dart';
+import 'features/teacher/teacher_class_detail_screen.dart';
 
 class AppRouter {
   static const splash = '/';
@@ -37,10 +42,15 @@ class AppRouter {
   static const metrics = '/metrics';
   static const profile = '/profile';
   static const settings = '/settings';
+  static const teacherHome = '/teacher';
+  static const classes = '/classes';
+  static const teacherAnalytics = '/teacher/analytics';
+  static const teacherClassDetail = '/teacher/class-detail';
+  static const teacherStudentDetail = '/teacher/student-detail';
 
   static Map<String, WidgetBuilder> get routes => {
     splash: (_) => const SplashScreen(),
-    login: (_) => const LoginScreen(),
+    login: (_) =>  LoginScreen(),
     register: (_) => const RegisterScreen(),
     home: (_) => const HomeScreen(),
 
@@ -58,5 +68,10 @@ class AppRouter {
     metrics: (_) => const MetricsScreen(),
     profile: (_) => const ProfileScreen(),
     settings: (_) => const SettingsScreen(),
+    teacherHome: (_) => const TeacherHomeScreen(),
+    classes: (_) => const StudentClassesScreen(),
+    teacherAnalytics: (_) => const TeacherAnalyticsScreen(),
+    teacherStudentDetail: (_) => const TeacherStudentDetailScreen(),
+    teacherClassDetail: (_) => const TeacherClassDetailScreen(),
   };
 }

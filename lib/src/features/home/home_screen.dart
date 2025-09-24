@@ -205,6 +205,9 @@ class _ExploreTab extends StatelessWidget {
         Icons.psychology,
             () => Navigator.pushNamed(context, AppRouter.ia),
       ),
+      _ExploreTile('Clases', 'Unirte y ver clases', Icons.class_,
+              () => Navigator.pushNamed(context, AppRouter.classes)),
+
     ];
 
     return GridView.count(
