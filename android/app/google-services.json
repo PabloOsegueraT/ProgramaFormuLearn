@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "1015887201321",
+    "project_id": "formulearn-2e02a",
+    "storage_bucket": "formulearn-2e02a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1015887201321:android:5d26009c14c300fe2c0838",
+        "android_client_info": {
+          "package_name": "com.example.formulearn"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDRCHl2SzhVuqvMqC_liHUWTxpxV3YxFOU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1015887201321:android:75edbaa5b749aa402c0838",
+        "android_client_info": {
+          "package_name": "com.formulearn.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDRCHl2SzhVuqvMqC_liHUWTxpxV3YxFOU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

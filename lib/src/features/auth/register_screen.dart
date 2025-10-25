@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../common/widgets/primary_button.dart';
+import '../../router.dart';
+import '../../services/auth_service.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -9,7 +11,6 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  // Paso actual: 0..2
   int step = 0;
 
   // Paso 1 – datos básicos
@@ -19,10 +20,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final passCtrl = TextEditingController();
   String level = 'Bachillerato';
 
-  // Paso 2 – test rápido
-  String? prefLearning; // visual, ejemplos, lectura
-  String? dailyMinutes; // 10-15, 20-30, 40+
+  // Paso 2 – VARK + hábitos
+  String? prefLearning;                // visual | auditiva | lectura | kinestesica (etiqueta amigable)
+  String? dailyMinutes;                // 10-15 | 20-30 | 40+
   final Set<String> mainSubjects = {}; // Matemáticas, Física, Química
+
+  // Resultado VARK a guardar
+  Map<String, int>? varkCounts;        // {'V':x,'A':y,'R':z,'K':w}
+  String? varkPredominant;             // 'V' | 'A' | 'R' | 'K'
+
+  bool _loading = false;
 
   @override
   void dispose() {
@@ -38,9 +45,113 @@ class _RegisterScreenState extends State<RegisterScreen> {
   void next() => setState(() => step = (step + 1).clamp(0, 2));
   void back() => setState(() => step = (step - 1).clamp(0, 2));
 
+  Future<void> _createAccount() async {
+    final cs = Theme.of(context).colorScheme;
+    final name = nameCtrl.text.trim();
+    final age = int.tryParse(ageCtrl.text.trim()) ?? 0;
+    final email = emailCtrl.text.trim();
+    final pass = passCtrl.text.trim();
+
+    if (name.isEmpty || email.isEmpty || pass.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Completa nombre, correo y contraseña.')),
+      );
+      return;
+    }
+    if (pass.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('La contraseña debe tener al menos 6 caracteres.')),
+      );
+      return;
+    }
+
+    setState(() => _loading = true);
+    try {
+      final uid = await AuthService.instance.signUp(
+        name: name,
+        email: email,
+        password: pass,
+        age: age,
+        level: level,
+        role: 'alumno',
+        prefLearning: prefLearning,
+        dailyMinutes: dailyMinutes,
+        mainSubjects: mainSubjects.toList(),
+      );
+
+      // Guardar perfil VARK unificado si existe
+      if (varkCounts != null && varkPredominant != null) {
+        await AuthService.instance.saveLearningProfile(
+          uid: uid,
+          counts: varkCounts!,
+          predominant: varkPredominant!,
+          instrument: 'VARK',
+          version: '1.0',
+          // classId: null, // si lo necesitas en contexto de clase
+        );
+      }
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(backgroundColor: cs.primary, content: const Text('Cuenta creada')),
+      );
+      Navigator.pushReplacementNamed(context, AppRouter.login);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No se pudo crear la cuenta: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+
+    Widget content;
+    if (step == 0) {
+      content = _StepOne(
+        nameCtrl: nameCtrl,
+        ageCtrl: ageCtrl,
+        emailCtrl: emailCtrl,
+        passCtrl: passCtrl,
+        level: level,
+        onLevelChanged: (v) => setState(() => level = v),
+      );
+    } else if (step == 1) {
+      content = _StepTwo(
+        prefLearning: prefLearning,
+        onPrefLearning: (v) => setState(() => prefLearning = v),
+        dailyMinutes: dailyMinutes,
+        onDailyMinutes: (v) => setState(() => dailyMinutes = v),
+        mainSubjects: mainSubjects,
+        onToggleSubject: (s) => setState(() {
+          mainSubjects.contains(s) ? mainSubjects.remove(s) : mainSubjects.add(s);
+        }),
+        onVarkComputed: (counts, predominant) {
+          // Mapear etiqueta amigable (por si quieres mostrarla en preferencias)
+          final mapToLabel = {
+            'V': 'visual',
+            'A': 'auditiva',
+            'R': 'lectura',
+            'K': 'kinestesica',
+          };
+          setState(() {
+            varkCounts = counts;
+            varkPredominant = predominant;
+            prefLearning = mapToLabel[predominant];
+          });
+        },
+      );
+    } else {
+      content = _StepThree(
+        prefLearning: prefLearning,
+        dailyMinutes: dailyMinutes,
+        mainSubjects: mainSubjects,
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -57,84 +168,72 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ),
       ),
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(16),
+        child: Stack(
           children: [
-            // Título grande
-            Text(
-              'Crear cuenta',
-              style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.5,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Center(
-              child: Text('Paso ${step + 1} de 3',
-                  style: Theme.of(context).textTheme.bodySmall),
-            ),
-            const SizedBox(height: 16),
-
-            // Contenido según el paso
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 250),
-              child: switch (step) {
-                0 => _StepOne(
-                  nameCtrl: nameCtrl,
-                  ageCtrl: ageCtrl,
-                  emailCtrl: emailCtrl,
-                  passCtrl: passCtrl,
-                  level: level,
-                  onLevelChanged: (v) => setState(() => level = v),
-                ),
-                1 => _StepTwo(
-                  prefLearning: prefLearning,
-                  onPrefLearning: (v) => setState(() => prefLearning = v),
-                  dailyMinutes: dailyMinutes,
-                  onDailyMinutes: (v) => setState(() => dailyMinutes = v),
-                  mainSubjects: mainSubjects,
-                  onToggleSubject: (s) => setState(() {
-                    mainSubjects.contains(s)
-                        ? mainSubjects.remove(s)
-                        : mainSubjects.add(s);
-                  }),
-                ),
-                _ => _StepThree(
-                  prefLearning: prefLearning,
-                  dailyMinutes: dailyMinutes,
-                  mainSubjects: mainSubjects,
-                ),
-              },
-            ),
-            const SizedBox(height: 16),
-
-            // Botonera inferior
-            Row(
+            ListView(
+              padding: const EdgeInsets.all(16),
               children: [
-                const SizedBox(width: 12),
-                Expanded(
-                  child: PrimaryButton(
-                    text: step < 2 ? 'Continuar' : 'Crear cuenta',
-                    onPressed: () {
-                      if (step < 2) {
-                        next();
-                      } else {
-                        Navigator.pushReplacementNamed(context, '/login');
-                        // Solo visual: mostrar snack
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            backgroundColor: cs.primary,
-                            content: const Text('Cuenta creada'),
-                          ),
-                        );
-                      }
-                    },
-                    icon: step < 2 ? Icons.arrow_forward_rounded : Icons.check,
+                Text(
+                  'Crear cuenta',
+                  style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.5,
                   ),
                 ),
+                const SizedBox(height: 4),
+                Center(
+                  child: Text('Paso ${step + 1} de 3',
+                      style: Theme.of(context).textTheme.bodySmall),
+                ),
+                const SizedBox(height: 16),
+
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 250),
+                  child: content,
+                ),
+                const SizedBox(height: 16),
+
+                Row(
+                  children: [
+                    if (step > 0)
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: back,
+                          icon: const Icon(Icons.arrow_back_rounded),
+                          label: const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 12),
+                            child: Text('Atrás'),
+                          ),
+                        ),
+                      )
+                    else
+                      const SizedBox(width: 12),
+                    if (step > 0) const SizedBox(width: 12),
+                    Expanded(
+                      child: PrimaryButton(
+                        text: step < 2 ? 'Continuar' : 'Crear cuenta',
+                        onPressed: () {
+                          if (step < 2) {
+                            next();
+                          } else {
+                            _createAccount();
+                          }
+                        },
+                        icon: step < 2 ? Icons.arrow_forward_rounded : Icons.check,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
               ],
             ),
-            const SizedBox(height: 8),
+            if (_loading)
+              Positioned.fill(
+                child: Container(
+                  color: Colors.black12,
+                  child: const Center(child: CircularProgressIndicator()),
+                ),
+              ),
           ],
         ),
       ),
@@ -168,17 +267,16 @@ class _StepOne extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 4),
-        _FieldLabel('Nombre'),
+        const _FieldLabel('Nombre'),
         TextField(controller: nameCtrl),
         const SizedBox(height: 12),
-
         Row(
           children: [
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _FieldLabel('Edad'),
+                  const _FieldLabel('Edad'),
                   TextField(
                     controller: ageCtrl,
                     keyboardType: TextInputType.number,
@@ -191,7 +289,7 @@ class _StepOne extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _FieldLabel('Nivel'),
+                  const _FieldLabel('Nivel'),
                   _LevelDropdown(
                     value: level,
                     items: levels,
@@ -203,16 +301,14 @@ class _StepOne extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 12),
-
-        _FieldLabel('Correo'),
+        const _FieldLabel('Correo'),
         TextField(
           controller: emailCtrl,
           keyboardType: TextInputType.emailAddress,
           decoration: const InputDecoration(hintText: 'tu@correo.com'),
         ),
         const SizedBox(height: 12),
-
-        _FieldLabel('Contraseña'),
+        const _FieldLabel('Contraseña'),
         TextField(
           controller: passCtrl,
           obscureText: true,
@@ -223,7 +319,7 @@ class _StepOne extends StatelessWidget {
   }
 }
 
-/// Paso 2 – Test de aprendizaje VARK (completo) + minutos y materia
+/// Paso 2 – Test de aprendizaje (VARK) + hábitos
 class _StepTwo extends StatefulWidget {
   const _StepTwo({
     required this.prefLearning,
@@ -232,28 +328,30 @@ class _StepTwo extends StatefulWidget {
     required this.onDailyMinutes,
     required this.mainSubjects,
     required this.onToggleSubject,
+    required this.onVarkComputed,
   });
 
-  final String? prefLearning; // 'visual' | 'ejemplos' | 'lectura'
+  final String? prefLearning;
   final ValueChanged<String> onPrefLearning;
 
-  final String? dailyMinutes; // '10-15' | '20-30' | '40+'
+  final String? dailyMinutes;
   final ValueChanged<String> onDailyMinutes;
 
-  final Set<String> mainSubjects; // {'Matemáticas', 'Física', 'Química'}
+  final Set<String> mainSubjects;
   final ValueChanged<String> onToggleSubject;
+
+  final void Function(Map<String, int> counts, String predominant) onVarkComputed;
 
   @override
   State<_StepTwo> createState() => _StepTwoState();
 }
 
 class _StepTwoState extends State<_StepTwo> {
-  // Respuestas del VARK: por índice guardo 'V' | 'A' | 'R' | 'K'
-  final Map<int, String> _answers = {};
-  String? _resultado; // 'V' | 'A' | 'R' | 'K'
+  final Map<int, String> _answers = {}; // por índice: 'V'|'A'|'R'|'K'
+  String? _resultado;                   // 'V'|'A'|'R'|'K'
+  Map<String, int> _counts = {'V': 0, 'A': 0, 'R': 0, 'K': 0};
 
-  // Preguntas (tipadas correctamente para evitar Object)
-  final List<Map<String, Object>> _questions = [
+  final List<Map<String, Object>> _questions = <Map<String, Object>>[
     {
       'q': 'Cuando aprendes un tema nuevo, prefieres…',
       'options': <String, String>{
@@ -338,25 +436,22 @@ class _StepTwoState extends State<_StepTwo> {
       if (v > (counts[top] ?? 0)) top = k;
     });
 
-    setState(() => _resultado = top);
+    setState(() {
+      _resultado = top;
+      _counts = Map<String, int>.from(counts);
+    });
 
-    // Mapeo al estado del padre (tu variable prefLearning)
-    // V -> 'visual', A -> 'ejemplos' (oral/explicar), R -> 'lectura', K -> 'ejemplos'
-    // (Puedes ajustar esta traducción si prefieres otras etiquetas)
-    final mapToParent = {
-      'V': 'visual',
-      'A': 'ejemplos',
-      'R': 'lectura',
-      'K': 'ejemplos',
-    };
-    widget.onPrefLearning(mapToParent[top]!);
+    widget.onVarkComputed(_counts, _resultado!);
+
+    // Opcional: actualizar preferencia amigable
+    final mapToLabel = {'V': 'visual', 'A': 'auditiva', 'R': 'lectura', 'K': 'kinestesica'};
+    widget.onPrefLearning(mapToLabel[top]!);
   }
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
-    // Helpers UI locales para mantener tu API intacta
     Widget choice(String label, bool sel, VoidCallback onTap, IconData icon) {
       return ChoiceChip(
         label: Row(
@@ -398,22 +493,18 @@ class _StepTwoState extends State<_StepTwo> {
       key: const ValueKey('step2'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // HEADER
         Text('Test de aprendizaje (VARK)',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w700,
-            )),
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
         const SizedBox(height: 6),
         Text('Responde cómo prefieres aprender. Al final calcularemos tu perfil.',
             style: Theme.of(context).textTheme.bodyMedium),
         const SizedBox(height: 16),
 
-        // VARK QUESTIONS
+        // Preguntas VARK
         ...List.generate(_questions.length, (i) {
           final q = _questions[i];
-          final String questionText = q['q'] as String;
-          final Map<String, String> options =
-          q['options'] as Map<String, String>;
+          final questionText = q['q'] as String;
+          final options = q['options'] as Map<String, String>;
           final selected = _answers[i];
 
           return Card(
@@ -425,10 +516,7 @@ class _StepTwoState extends State<_StepTwo> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(questionText,
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleMedium
-                          ?.copyWith(fontWeight: FontWeight.w600)),
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
                   const SizedBox(height: 8),
                   ...options.entries.map((e) {
                     final sel = selected == e.value;
@@ -455,15 +543,13 @@ class _StepTwoState extends State<_StepTwo> {
           ),
         ),
 
-        // RESULTADO VARK
         if (_resultado != null) ...[
           const SizedBox(height: 16),
-          _ResultCardVark(tipo: _resultado!),
+          _ResultCardVark(tipo: _resultado!, counts: _counts),
         ],
 
         const SizedBox(height: 20),
 
-        // MINUTOS DIARIOS (conservado para tu paso 3)
         Text('¿Cuántos minutos al día quieres estudiar?',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
         const SizedBox(height: 8),
@@ -488,7 +574,6 @@ class _StepTwoState extends State<_StepTwo> {
 
         const SizedBox(height: 16),
 
-        // MATERIA PRINCIPAL (conservado para tu paso 3)
         Text('Materia principal de interés',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
         const SizedBox(height: 8),
@@ -516,16 +601,17 @@ class _StepTwoState extends State<_StepTwo> {
 }
 
 class _ResultCardVark extends StatelessWidget {
-  const _ResultCardVark({required this.tipo}); // 'V' 'A' 'R' 'K'
-  final String tipo;
+  const _ResultCardVark({required this.tipo, required this.counts});
+  final String tipo; // 'V','A','R','K'
+  final Map<String, int> counts;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final map = {
+    final map = <String, Map<String, Object>>{
       'V': {
         'titulo': 'Visual',
-        'tip': 'Usa diagramas, mapas mentales, colores y esquemas; convierte ideas en imágenes.',
+        'tip': 'Usa diagramas, mapas mentales y colores; convierte ideas en imágenes.',
         'icon': Icons.insights_outlined,
       },
       'A': {
@@ -540,38 +626,53 @@ class _ResultCardVark extends StatelessWidget {
       },
       'K': {
         'titulo': 'Kinestésico',
-        'tip': 'Aprende haciendo; ejercicios, simulaciones, laboratorios y casos reales.',
+        'tip': 'Aprende haciendo; ejercicios, simulaciones y casos reales.',
         'icon': Icons.handyman_outlined,
       },
     };
     final data = map[tipo]!;
+    final total =
+        (counts['V'] ?? 0) + (counts['A'] ?? 0) + (counts['R'] ?? 0) + (counts['K'] ?? 0);
+    double pct(String k) => total == 0 ? 0 : (counts[k] ?? 0) / total;
 
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Row(
+        child: Column(
           children: [
-            Icon(data['icon'] as IconData, size: 36),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Tu estilo predominante: ${data['titulo']}',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      )),
-                  const SizedBox(height: 6),
-                  Text(data['tip'] as String),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Nota: Es una preferencia, no una etiqueta fija. Combina estrategias según el contenido.',
-                    style: TextStyle(color: cs.onSurfaceVariant),
+            Row(
+              children: [
+                Icon(data['icon'] as IconData, size: 36),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Tu estilo predominante: ${data['titulo']}',
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          )),
+                      const SizedBox(height: 6),
+                      Text(data['tip'] as String),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Nota: Es una preferencia, no una etiqueta fija. Combina estrategias según el contenido.',
+                        style: TextStyle(color: cs.onSurfaceVariant),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
+            const SizedBox(height: 16),
+            _BarVark(label: 'Visual', value: pct('V')),
+            const SizedBox(height: 8),
+            _BarVark(label: 'Aural', value: pct('A')),
+            const SizedBox(height: 8),
+            _BarVark(label: 'Lectura/Escritura', value: pct('R')),
+            const SizedBox(height: 8),
+            _BarVark(label: 'Kinestésico', value: pct('K')),
           ],
         ),
       ),
@@ -600,8 +701,6 @@ class _BarVark extends StatelessWidget {
   }
 }
 
-
-
 /// Paso 3 – Resumen
 class _StepThree extends StatelessWidget {
   const _StepThree({
@@ -616,7 +715,7 @@ class _StepThree extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bullets = [
+    final bullets = <String>[
       'Preferencia: ${prefLearning ?? '—'}',
       'Ritmo diario: ${dailyMinutes ?? '—'}',
       'Materia foco: ${mainSubjects.isEmpty ? '—' : mainSubjects.join(', ')}',
@@ -666,24 +765,7 @@ class _FieldLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
-      child:
-      Text(text, style: Theme.of(context).textTheme.labelMedium),
-    );
-  }
-}
-
-class _SubHeader extends StatelessWidget {
-  const _SubHeader(this.text);
-  final String text;
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Text(text,
-          style: Theme.of(context)
-              .textTheme
-              .titleMedium
-              ?.copyWith(fontWeight: FontWeight.w700)),
+      child: Text(text, style: Theme.of(context).textTheme.labelMedium),
     );
   }
 }
@@ -703,9 +785,7 @@ class _LevelDropdown extends StatelessWidget {
     return DropdownButtonFormField<String>(
       value: value,
       decoration: const InputDecoration(),
-      items: items
-          .map((e) => DropdownMenuItem<String>(value: e, child: Text(e)))
-          .toList(),
+      items: items.map((e) => DropdownMenuItem<String>(value: e, child: Text(e))).toList(),
       onChanged: (v) {
         if (v != null) onChanged(v);
       },

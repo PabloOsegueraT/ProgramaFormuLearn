@@ -28,6 +28,13 @@ environment:
 # the latest version available on pub.dev. To see which dependencies have newer
 # versions available, run `flutter pub outdated`.
 dependencies:
+  image_picker: ^1.1.1
+  google_mlkit_text_recognition: ^0.13.0 # OCR on-device
+  google_generative_ai: ^0.4.6 # Gemini (visión/texto/embeddings)
+  flutter_dotenv: ^5.1.0       # guardar API key sin hardcodear
+  http: ^1.2.2                 # REST a Qdrant (búsqueda vectorial)
+    # (Opcional) OpenCV on-device:
+  opencv_4: ^1.0.0             # si vas a hacer geometría en el dispositivo
   lottie: ^2.7.0
   flutter:
     sdk: flutter
@@ -35,6 +42,9 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
+  firebase_core: ^4.2.0
+  firebase_auth: ^6.1.1
+  cloud_firestore: ^6.0.3
 
 dev_dependencies:
   flutter_test:
