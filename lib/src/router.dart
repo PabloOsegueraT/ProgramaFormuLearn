@@ -21,6 +21,9 @@ import 'features/classes/student_classes_screen.dart';
 import 'features/teacher/teacher_analytics_screen.dart';
 import 'features/teacher/teacher_student_detail_screen.dart';
 import 'features/teacher/teacher_class_detail_screen.dart';
+import 'features/ia/formulas_from_photo_screen.dart';
+import 'package:formulearn/src/features/ia/formulas_from_photo_screen.dart';
+import 'features/ia/graphs_from_photo_screen.dart';
 
 class AppRouter {
   static const splash = '/';
@@ -47,6 +50,11 @@ class AppRouter {
   static const teacherAnalytics = '/teacher/analytics';
   static const teacherClassDetail = '/teacher/class-detail';
   static const teacherStudentDetail = '/teacher/student-detail';
+  static const aiPhotoFormulas = '/ai/photo-formulas';
+  static const iaFormulasFromPhoto = '/ia/formulas-from-photo';
+  static const iaGraphsFromPhoto = '/ia/graphs-from-photo';
+
+
 
   static Map<String, WidgetBuilder> get routes => {
     splash: (_) => const SplashScreen(),
@@ -73,5 +81,7 @@ class AppRouter {
     teacherAnalytics: (_) => const TeacherAnalyticsScreen(),
     teacherStudentDetail: (_) => const TeacherStudentDetailScreen(),
     teacherClassDetail: (_) => const TeacherClassDetailScreen(),
+    aiPhotoFormulas: (_) => const FormulasFromPhotoScreen(),
+    iaGraphsFromPhoto: (_) => const GraphsFromPhotoScreen(),
   };
 }
