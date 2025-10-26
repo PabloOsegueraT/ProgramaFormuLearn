@@ -23,7 +23,7 @@ class FormulasScreen extends StatelessWidget {
             icon: Icons.functions,
             title: 'Física',
             subtitle: 'Cinemática, dinamica, energía…',
-            onTap: () => Navigator.pushNamed(context, AppRouter.physics), // ← AQUI
+            onTap: () => Navigator.pushNamed(context, AppRouter.physics),
           ),
           const SizedBox(height: 12),
           _SubjectCard(

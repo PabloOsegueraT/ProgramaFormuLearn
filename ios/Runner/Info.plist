@@ -26,6 +26,10 @@
 	<true/>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
+	<key>NSCameraUsageDescription</key>
+    <string>Necesitamos la cámara para capturar problemas.</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>Necesitamos acceder a tus fotos para seleccionar imágenes de problemas.</string>
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>
 	<key>UISupportedInterfaceOrientations</key>
