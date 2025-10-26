@@ -1,4 +1,3 @@
-// lib/src/features/formulas/formula_detail_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
@@ -203,7 +202,7 @@ class _FormulaDetailScreenState extends State<FormulaDetailScreen> {
                         selectable: true,
                         softLineBreak: true,
                         styleSheet: _mdStyle(context),
-                        onTapLink: (_, __, ___) {}, // por si hay links
+                        onTapLink: (_, __, ___) {},
                       ),
                     ),
                   ),
@@ -248,7 +247,7 @@ class _FormulaDetailScreenState extends State<FormulaDetailScreen> {
       final model = GenerativeModel(
         model: 'gemini-2.5-flash',
         apiKey: apiKey,
-        generationConfig:  GenerationConfig(
+        generationConfig: GenerationConfig(
           temperature: 0.7,
           topP: 0.95,
         ),
@@ -273,7 +272,7 @@ Estructura requerida en Markdown:
 
 ### Desarrollo
 - 2–5 pasos numerados con fórmulas en bloque rodeadas por **triple backticks**:
-      
+
 ### Resultado
 - frase final clara.
 
@@ -311,6 +310,8 @@ Al final escribe **una línea adicional** (fuera del Markdown) con este formato 
   }
 
   // ---------- Helpers de normalización (no cambian UI) ----------
+
+  /// Convierte cualquier entrada a `List<String>`
   List<String> _asStringList(dynamic v) {
     if (v == null) return const [];
     if (v is List) {
@@ -326,6 +327,7 @@ Al final escribe **una línea adicional** (fuera del Markdown) con este formato 
     return parts.isEmpty ? <String>[s] : parts;
   }
 
+  /// Convierte variables a `Map<String,String>` desde Map/List/String
   Map<String, String> _asStringMap(dynamic v) {
     if (v == null) return const {};
     if (v is Map) {
@@ -349,6 +351,7 @@ Al final escribe **una línea adicional** (fuera del Markdown) con este formato 
       }
       return out;
     }
+    // String plano
     final s = v.toString();
     final out = <String, String>{};
     for (final part in s.split(RegExp(r'[,\n]+'))) {
@@ -389,10 +392,8 @@ class _SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: Theme.of(context)
-          .textTheme
-          .titleMedium
-          ?.copyWith(fontWeight: FontWeight.w800),
+      style:
+      Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
     );
   }
 }
