@@ -1,8 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
-import 'package:google_generative_ai/google_generative_ai.dart';
-
-import '../../config/env.dart';
 
 class FormulaDetailScreen extends StatefulWidget {
   const FormulaDetailScreen({super.key});
@@ -13,13 +9,7 @@ class FormulaDetailScreen extends StatefulWidget {
 
 class _FormulaDetailScreenState extends State<FormulaDetailScreen> {
   final _iaCtrl = TextEditingController();
-  bool _genLoading = false;
-
-  /// Markdown que muestra la explicación bonita
-  String? _generatedMd;
-
-  /// Resultado breve extraído del markdown (para la tarjeta destacada)
-  String? _finalResult;
+  String? _generated; // solo visual
 
   @override
   void dispose() {
@@ -29,18 +19,15 @@ class _FormulaDetailScreenState extends State<FormulaDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final args =
-        (ModalRoute.of(context)?.settings.arguments as Map?) ?? <String, dynamic>{};
+    final args = ModalRoute.of(context)!.settings.arguments as Map?;
+    final title = (args?['title'] ?? 'Fórmula') as String;
+    final expression = (args?['expression'] ?? '') as String;
+    final summary = (args?['summary'] ?? '') as String;
+    final topic = (args?['topic'] ?? '') as String;
 
-    // --- Normalización robusta (sin cambiar UI principal) ---
-    final String title = (args['title'] ?? 'Fórmula').toString();
-    final String expression = (args['expression'] ?? '').toString();
-    final String summary = (args['summary'] ?? '').toString();
-    final String topic = (args['topic'] ?? '').toString();
-
-    final String explanation = (args['explanation'] ?? summary).toString();
-    final Map<String, String> variables = _asStringMap(args['variables']);
-    final List<String> conditions = _asStringList(args['conditions']);
+    final explanation = (args?['explanation'] ?? summary) as String;
+    final variables = (args?['variables'] ?? const <String, String>{}) as Map<String, String>;
+    final conditions = (args?['conditions'] ?? const <String>[]) as List<String>;
 
     final cs = Theme.of(context).colorScheme;
 
@@ -57,13 +44,10 @@ class _FormulaDetailScreenState extends State<FormulaDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    title,
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleLarge
-                        ?.copyWith(fontWeight: FontWeight.w800),
-                  ),
+                  Text(title,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      )),
                   const SizedBox(height: 10),
                   Container(
                     width: double.infinity,
@@ -88,7 +72,7 @@ class _FormulaDetailScreenState extends State<FormulaDetailScreen> {
           const SizedBox(height: 12),
 
           // Explicación
-          const _SectionTitle('Explicación'),
+          _SectionTitle('Explicación'),
           _SectionCard(
             child: Text(
               explanation,
@@ -98,53 +82,46 @@ class _FormulaDetailScreenState extends State<FormulaDetailScreen> {
           const SizedBox(height: 12),
 
           // Variables y unidades
-          const _SectionTitle('Variables y unidades'),
+          _SectionTitle('Variables y unidades'),
           _SectionCard(
             child: Column(
               children: variables.entries
-                  .map(
-                    (e) => ListTile(
-                  dense: true,
-                  leading: const Icon(Icons.label_outline),
-                  title: Text(
-                    e.key,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  subtitle: Text(e.value.isEmpty ? '—' : e.value),
-                ),
-              )
+                  .map((e) => ListTile(
+                dense: true,
+                leading: const Icon(Icons.label_outline),
+                title: Text(e.key, style: const TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: Text(e.value),
+              ))
                   .toList(),
             ),
           ),
           const SizedBox(height: 12),
 
           // Condiciones de uso
-          const _SectionTitle('Condiciones de uso'),
+          _SectionTitle('Condiciones de uso'),
           _SectionCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: conditions.isEmpty
                   ? [const Text('—')]
                   : conditions
-                  .map(
-                    (c) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('•  '),
-                      Expanded(child: Text(c)),
-                    ],
-                  ),
+                  .map((c) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('•  '),
+                    Expanded(child: Text(c)),
+                  ],
                 ),
-              )
+              ))
                   .toList(),
             ),
           ),
           const SizedBox(height: 16),
 
-          // Generación de ejemplos con IA (mejor presentación)
-          const _SectionTitle('Generación de ejemplos con IA'),
+          // Generación de ejemplos con IA (visual)
+          _SectionTitle('Generación de ejemplos con IA'),
           _SectionCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -154,8 +131,8 @@ class _FormulaDetailScreenState extends State<FormulaDetailScreen> {
                   minLines: 1,
                   maxLines: 4,
                   decoration: InputDecoration(
-                    labelText: 'Generar ejemplo a partir de…',
-                    hintText: 'p.ej. “correr 100 m en 12 s”, “carrito de 2 kg…”',
+                    labelText: 'Genere ejemplo a base de...',
+                    hintText: 'p.ej. “correr 100 m en 12 s”, “carrito con masa 2 kg en una rampa”…',
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
@@ -164,47 +141,41 @@ class _FormulaDetailScreenState extends State<FormulaDetailScreen> {
                   width: double.infinity,
                   child: FilledButton.icon(
                     icon: const Icon(Icons.auto_awesome),
-                    label: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      child: Text(_genLoading ? 'Generando…' : 'Generar ejemplo'),
+                    label: const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      child: Text('Generar ejemplo'),
                     ),
-                    onPressed: _genLoading
-                        ? null
-                        : () => _generateExampleWithAI(
-                      title: title,
-                      topic: topic,
-                      expression: expression,
-                      variables: variables,
-                      userHint: _iaCtrl.text.trim(),
-                    ),
+                    onPressed: () {
+                      final prompt = _iaCtrl.text.trim();
+                      if (prompt.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Escribe una base para el ejemplo')),
+                        );
+                        return;
+                      }
+                      // Solo demo visual: “generamos” un ejemplo usando la fórmula y el prompt
+                      setState(() {
+                        _generated =
+                        'Ejemplo basado en: "$prompt"\n\n'
+                            'Usando $expression:\n'
+                            '${_demoExample(expression, variables)}\n\n'
+                            'Interpretación: este ejemplo está adaptado a lo que escribiste. '
+                            'En una versión con IA real, aquí verías el cálculo y la explicación paso a paso.';
+                      });
+                    },
                   ),
                 ),
-
-                // Resultado destacado
-                if (_finalResult != null) ...[
+                if (_generated != null) ...[
                   const SizedBox(height: 12),
-                  _ResultCallout(text: _finalResult!),
-                ],
-
-                // Markdown bonito
-                if (_generatedMd != null) ...[
-                  const SizedBox(height: 12),
-                  DecoratedBox(
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: cs.surfaceContainerHighest.withOpacity(.7),
+                      color: cs.primaryContainer.withOpacity(.45),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: cs.outline.withOpacity(.12)),
+                      border: Border.all(color: cs.outline.withOpacity(.15)),
                     ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: MarkdownBody(
-                        data: _generatedMd!,
-                        selectable: true,
-                        softLineBreak: true,
-                        styleSheet: _mdStyle(context),
-                        onTapLink: (_, __, ___) {},
-                      ),
-                    ),
+                    child: Text(_generated!),
                   ),
                 ],
               ],
@@ -215,172 +186,18 @@ class _FormulaDetailScreenState extends State<FormulaDetailScreen> {
     );
   }
 
-  // ---------- IA: genera markdown + extrae el resultado ----------
-  Future<void> _generateExampleWithAI({
-    required String title,
-    required String topic,
-    required String expression,
-    required Map<String, String> variables,
-    required String userHint,
-  }) async {
-    if (userHint.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Escribe una base para el ejemplo')),
-      );
-      return;
+  String _demoExample(String expr, Map<String, String> variables) {
+    // Crea un texto demostrativo a partir de la ecuación y sus variables (solo UI)
+    if (expr.contains('v = d / t')) {
+      return 'Si d = 100 m y t = 10 s → v = 100 / 10 = 10 m/s.';
     }
-    final apiKey = Env.geminiApiKey;
-    if (apiKey.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Falta GEMINI_API_KEY en .env')),
-      );
-      return;
+    if (expr.contains('ΣF = m · a')) {
+      return 'Si m = 2 kg y a = 3 m/s² → ΣF = 2 · 3 = 6 N.';
     }
-
-    setState(() {
-      _genLoading = true;
-      _generatedMd = null;
-      _finalResult = null;
-    });
-
-    try {
-      final model = GenerativeModel(
-        model: 'gemini-2.5-flash',
-        apiKey: apiKey,
-        generationConfig: GenerationConfig(
-          temperature: 0.7,
-          topP: 0.95,
-        ),
-      );
-
-      // Le pedimos a la IA Markdown limpio y una línea marcada con [RESULTADO]:
-      final prompt = '''
-Eres un profesor. Crea un ejemplo resuelto, claro y breve, usando **Markdown** bonito.
-
-Contexto:
-- Materia: ${topic.isEmpty ? '—' : topic}
-- Fórmula a usar: `$expression`
-- Variables: ${variables.entries.map((e) => '${e.key} = ${e.value}').join(', ')}
-- Pista del usuario: "$userHint"
-
-Estructura requerida en Markdown:
-### Planteamiento
-(frase breve que conecte con la pista)
-
-### Datos
-- lista con valores simbólicos introducidos (si no hay, indica que se asumirán valores razonables)
-
-### Desarrollo
-- 2–5 pasos numerados con fórmulas en bloque rodeadas por **triple backticks**:
-
-### Resultado
-- frase final clara.
-
-Al final escribe **una línea adicional** (fuera del Markdown) con este formato EXACTO para que la app lo destaque:
-[RESULTADO]: <valor y unidades breves>
-''';
-
-      final res = await model.generateContent([Content.text(prompt)]);
-      final text = (res.text ?? '').trim();
-
-      // Extraer la línea [RESULTADO]:
-      final rx = RegExp(r'^\[RESULTADO\]:\s*(.+)$', multiLine: true);
-      String? result;
-      String md = text;
-      final m = rx.firstMatch(text);
-      if (m != null) {
-        result = m.group(1)?.trim();
-        md = text.replaceAll(rx, '').trim();
-      }
-
-      if (!mounted) return;
-      setState(() {
-        _generatedMd = md.isEmpty ? 'No se pudo generar contenido.' : md;
-        _finalResult = result;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _generatedMd = 'Error IA: $e';
-      });
-    } finally {
-      if (!mounted) return;
-      setState(() => _genLoading = false);
+    if (expr.contains('K = ½')) {
+      return 'Si m = 1.5 kg y v = 4 m/s → K = ½ · 1.5 · 16 = 12 J.';
     }
-  }
-
-  // ---------- Helpers de normalización (no cambian UI) ----------
-
-  /// Convierte cualquier entrada a `List<String>`
-  List<String> _asStringList(dynamic v) {
-    if (v == null) return const [];
-    if (v is List) {
-      return v.map((e) => e.toString().trim()).where((e) => e.isNotEmpty).toList();
-    }
-    final s = v.toString().trim();
-    if (s.isEmpty) return const [];
-    final parts = s
-        .split(RegExp(r'[\n•,]+'))
-        .map((e) => e.trim())
-        .where((e) => e.isNotEmpty)
-        .toList();
-    return parts.isEmpty ? <String>[s] : parts;
-  }
-
-  /// Convierte variables a `Map<String,String>` desde Map/List/String
-  Map<String, String> _asStringMap(dynamic v) {
-    if (v == null) return const {};
-    if (v is Map) {
-      return v.map((k, val) => MapEntry(k.toString(), val.toString()));
-    }
-    if (v is List) {
-      final out = <String, String>{};
-      for (final item in v) {
-        if (item is Map) {
-          final key = (item['symbol'] ?? item['key'] ?? item['name'] ?? '').toString();
-          final val = (item['meaning'] ??
-              item['value'] ??
-              item['desc'] ??
-              item['fromText'] ??
-              '')
-              .toString();
-          if (key.isNotEmpty) out[key] = val;
-        } else {
-          out[item.toString()] = '';
-        }
-      }
-      return out;
-    }
-    // String plano
-    final s = v.toString();
-    final out = <String, String>{};
-    for (final part in s.split(RegExp(r'[,\n]+'))) {
-      final kv = part.split(':');
-      if (kv.isEmpty) continue;
-      final k = kv.first.trim();
-      final val = kv.length > 1 ? kv.sublist(1).join(':').trim() : '';
-      if (k.isNotEmpty) out[k] = val;
-    }
-    return out.isEmpty ? <String, String>{s: ''} : out;
-  }
-
-  MarkdownStyleSheet _mdStyle(BuildContext context) {
-    final theme = Theme.of(context);
-    return MarkdownStyleSheet.fromTheme(theme).copyWith(
-      h3: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-      p: theme.textTheme.bodyMedium?.copyWith(height: 1.35),
-      listBulletPadding: const EdgeInsets.only(right: 8),
-      blockquoteDecoration: BoxDecoration(
-        color: theme.colorScheme.surfaceVariant.withOpacity(.4),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      codeblockPadding: const EdgeInsets.all(12),
-      codeblockDecoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: theme.colorScheme.outline.withOpacity(.12)),
-      ),
-    );
+    return 'Sustituye valores plausibles en las variables (${variables.keys.join(', ')}) y evalúa.';
   }
 }
 
@@ -410,37 +227,6 @@ class _SectionCard extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(14),
         child: child,
-      ),
-    );
-  }
-}
-
-class _ResultCallout extends StatelessWidget {
-  final String text;
-  const _ResultCallout({required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: cs.primaryContainer.withOpacity(.55),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: cs.outline.withOpacity(.15)),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.check_circle, size: 20),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              'Resultado: $text',
-              style: const TextStyle(fontWeight: FontWeight.w700),
-            ),
-          ),
-        ],
       ),
     );
   }
