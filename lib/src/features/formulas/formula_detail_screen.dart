@@ -19,15 +19,23 @@ class _FormulaDetailScreenState extends State<FormulaDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final args = ModalRoute.of(context)!.settings.arguments as Map?;
-    final title = (args?['title'] ?? 'Fórmula') as String;
-    final expression = (args?['expression'] ?? '') as String;
-    final summary = (args?['summary'] ?? '') as String;
-    final topic = (args?['topic'] ?? '') as String;
+    final args =
+        (ModalRoute.of(context)?.settings.arguments as Map?) ?? <String, dynamic>{};
 
-    final explanation = (args?['explanation'] ?? summary) as String;
-    final variables = (args?['variables'] ?? const <String, String>{}) as Map<String, String>;
-    final conditions = (args?['conditions'] ?? const <String>[]) as List<String>;
+    // --- Normalización robusta (sin cambiar UI) ---
+    final String title = (args['title'] ?? 'Fórmula').toString();
+    final String expression = (args['expression'] ?? '').toString();
+    final String summary = (args['summary'] ?? '').toString();
+    final String topic = (args['topic'] ?? '').toString();
+
+    final String explanation =
+    (args['explanation'] ?? summary).toString();
+
+    // variables puede venir como Map, List de maps o incluso String
+    final Map<String, String> variables = _asStringMap(args['variables']);
+
+    // conditions puede venir como List<String> o como String
+    final List<String> conditions = _asStringList(args['conditions']);
 
     final cs = Theme.of(context).colorScheme;
 
@@ -44,10 +52,13 @@ class _FormulaDetailScreenState extends State<FormulaDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      )),
+                  Text(
+                    title,
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleLarge
+                        ?.copyWith(fontWeight: FontWeight.w800),
+                  ),
                   const SizedBox(height: 10),
                   Container(
                     width: double.infinity,
@@ -72,7 +83,7 @@ class _FormulaDetailScreenState extends State<FormulaDetailScreen> {
           const SizedBox(height: 12),
 
           // Explicación
-          _SectionTitle('Explicación'),
+          const _SectionTitle('Explicación'),
           _SectionCard(
             child: Text(
               explanation,
@@ -82,46 +93,53 @@ class _FormulaDetailScreenState extends State<FormulaDetailScreen> {
           const SizedBox(height: 12),
 
           // Variables y unidades
-          _SectionTitle('Variables y unidades'),
+          const _SectionTitle('Variables y unidades'),
           _SectionCard(
             child: Column(
               children: variables.entries
-                  .map((e) => ListTile(
-                dense: true,
-                leading: const Icon(Icons.label_outline),
-                title: Text(e.key, style: const TextStyle(fontWeight: FontWeight.w600)),
-                subtitle: Text(e.value),
-              ))
+                  .map(
+                    (e) => ListTile(
+                  dense: true,
+                  leading: const Icon(Icons.label_outline),
+                  title: Text(
+                    e.key,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Text(e.value.isEmpty ? '—' : e.value),
+                ),
+              )
                   .toList(),
             ),
           ),
           const SizedBox(height: 12),
 
           // Condiciones de uso
-          _SectionTitle('Condiciones de uso'),
+          const _SectionTitle('Condiciones de uso'),
           _SectionCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: conditions.isEmpty
                   ? [const Text('—')]
                   : conditions
-                  .map((c) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('•  '),
-                    Expanded(child: Text(c)),
-                  ],
+                  .map(
+                    (c) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('•  '),
+                      Expanded(child: Text(c)),
+                    ],
+                  ),
                 ),
-              ))
+              )
                   .toList(),
             ),
           ),
           const SizedBox(height: 16),
 
           // Generación de ejemplos con IA (visual)
-          _SectionTitle('Generación de ejemplos con IA'),
+          const _SectionTitle('Generación de ejemplos con IA'),
           _SectionCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -132,8 +150,10 @@ class _FormulaDetailScreenState extends State<FormulaDetailScreen> {
                   maxLines: 4,
                   decoration: InputDecoration(
                     labelText: 'Genere ejemplo a base de...',
-                    hintText: 'p.ej. “correr 100 m en 12 s”, “carrito con masa 2 kg en una rampa”…',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    hintText:
+                    'p.ej. “correr 100 m en 12 s”, “carrito con masa 2 kg en una rampa”…',
+                    border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -153,7 +173,7 @@ class _FormulaDetailScreenState extends State<FormulaDetailScreen> {
                         );
                         return;
                       }
-                      // Solo demo visual: “generamos” un ejemplo usando la fórmula y el prompt
+                      // Solo demo visual
                       setState(() {
                         _generated =
                         'Ejemplo basado en: "$prompt"\n\n'
@@ -186,15 +206,75 @@ class _FormulaDetailScreenState extends State<FormulaDetailScreen> {
     );
   }
 
+  // ---------- Helpers de normalización (no cambian UI) ----------
+
+  /// Convierte cualquier entrada a `List<String>`:
+  /// - null => []
+  /// - List => lista de strings
+  /// - String => intenta separar por saltos de línea, viñetas o comas; si no, devuelve [string]
+  List<String> _asStringList(dynamic v) {
+    if (v == null) return const [];
+    if (v is List) {
+      return v.map((e) => e.toString().trim()).where((e) => e.isNotEmpty).toList();
+    }
+    final s = v.toString().trim();
+    if (s.isEmpty) return const [];
+    final parts = s
+        .split(RegExp(r'[\n•,]+'))
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+    return parts.isEmpty ? <String>[s] : parts;
+  }
+
+  /// Convierte variables a `Map<String,String>` desde:
+  /// - Map (cualquier tipo de claves/valores)
+  /// - List de maps (ej: [{'symbol':'v','fromText':'velocidad'}])
+  /// - String (ej: "v: velocidad, d: distancia")
+  Map<String, String> _asStringMap(dynamic v) {
+    if (v == null) return const {};
+    if (v is Map) {
+      return v.map((k, val) => MapEntry(k.toString(), val.toString()));
+    }
+    if (v is List) {
+      final out = <String, String>{};
+      for (final item in v) {
+        if (item is Map) {
+          final key = (item['symbol'] ?? item['key'] ?? item['name'] ?? '').toString();
+          final val = (item['meaning'] ??
+              item['value'] ??
+              item['desc'] ??
+              item['fromText'] ??
+              '')
+              .toString();
+          if (key.isNotEmpty) out[key] = val;
+        } else {
+          out[item.toString()] = '';
+        }
+      }
+      return out;
+    }
+    // String plano
+    final s = v.toString();
+    final out = <String, String>{};
+    for (final part in s.split(RegExp(r'[,\n]+'))) {
+      final kv = part.split(':');
+      if (kv.isEmpty) continue;
+      final k = kv.first.trim();
+      final val = kv.length > 1 ? kv.sublist(1).join(':').trim() : '';
+      if (k.isNotEmpty) out[k] = val;
+    }
+    return out.isEmpty ? <String, String>{s: ''} : out;
+  }
+
   String _demoExample(String expr, Map<String, String> variables) {
-    // Crea un texto demostrativo a partir de la ecuación y sus variables (solo UI)
-    if (expr.contains('v = d / t')) {
+    if (expr.contains('v = d / t') || expr.contains(r'v = \frac{d}{t}')) {
       return 'Si d = 100 m y t = 10 s → v = 100 / 10 = 10 m/s.';
     }
-    if (expr.contains('ΣF = m · a')) {
+    if (expr.contains('ΣF = m · a') || expr.contains(r'\sum F = m \cdot a')) {
       return 'Si m = 2 kg y a = 3 m/s² → ΣF = 2 · 3 = 6 N.';
     }
-    if (expr.contains('K = ½')) {
+    if (expr.contains('K = ½') || expr.contains(r'K = \frac{1}{2}')) {
       return 'Si m = 1.5 kg y v = 4 m/s → K = ½ · 1.5 · 16 = 12 J.';
     }
     return 'Sustituye valores plausibles en las variables (${variables.keys.join(', ')}) y evalúa.';
@@ -209,8 +289,10 @@ class _SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style:
-      Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+      style: Theme.of(context)
+          .textTheme
+          .titleMedium
+          ?.copyWith(fontWeight: FontWeight.w800),
     );
   }
 }

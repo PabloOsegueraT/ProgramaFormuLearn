@@ -14,6 +14,7 @@ class FormuLearnApp extends StatelessWidget {
       theme: AppTheme.light,
       initialRoute: AppRouter.splash,
       routes: AppRouter.routes,
+      onGenerateRoute: AppRouter.onGenerateRoute,
     );
   }
 }
