@@ -1,87 +1,126 @@
+// lib/src/router.dart
 import 'package:flutter/material.dart';
+
+// Pantallas base
 import 'features/splash/splash_screen.dart';
 import 'features/auth/login_screen.dart';
 import 'features/auth/register_screen.dart';
 import 'features/home/home_screen.dart';
+
+// Fórmulas
 import 'features/formulas/formulas_screen.dart';
 import 'features/formulas/formula_detail_screen.dart';
 import 'features/formulas/search_screen.dart';
+import 'features/formulas/physics_screen.dart';
+import 'features/formulas/math_screen.dart';
+import 'features/formulas/chemistry_screen.dart';
+
+// IA
 import 'features/ia/ia_screen.dart';
+import 'features/ia/formulas_from_photo_screen.dart';
+import 'features/ia/graphs_from_photo_screen.dart';
+
+// Otras secciones
 import 'features/reps/reps_screen.dart';
 import 'features/portfolio/portfolio_screen.dart';
 import 'features/test/test_screen.dart';
 import 'features/metrics/metrics_screen.dart';
 import 'features/profile/profile_screen.dart';
 import 'features/settings/settings_screen.dart';
-import 'features/formulas/physics_screen.dart';
-import 'features/formulas/math_screen.dart';
-import 'features/formulas/chemistry_screen.dart';
+
+// Teacher / Clases
 import 'features/teacher/teacher_home_screen.dart';
 import 'features/classes/student_classes_screen.dart';
 import 'features/teacher/teacher_analytics_screen.dart';
 import 'features/teacher/teacher_student_detail_screen.dart';
 import 'features/teacher/teacher_class_detail_screen.dart';
-import 'features/ia/formulas_from_photo_screen.dart';
-import 'package:formulearn/src/features/ia/formulas_from_photo_screen.dart';
-import 'features/ia/graphs_from_photo_screen.dart';
+
+// Admin (solo debug)
+import 'features/admin/import_formulas_debug_screen.dart';
 
 class AppRouter {
+  // Core
   static const splash = '/';
   static const login = '/login';
   static const register = '/register';
   static const home = '/home';
 
-  // rutas internas 2 versio
+  // Fórmulas
   static const formulas = '/formulas';
   static const physics = '/formulas/physics';
   static const math = '/formulas/math';
   static const chemistry = '/formulas/chemistry';
   static const formulaDetail = '/formula-detail';
   static const search = '/search';
+
+  // IA
   static const ia = '/ia';
+  static const iaFormulasFromPhoto = '/ia/formulas-from-photo';
+  static const iaGraphsFromPhoto = '/ia/graphs-from-photo';
+
+  // Otras secciones
   static const reps = '/reps';
   static const portfolio = '/portfolio';
   static const test = '/test';
   static const metrics = '/metrics';
   static const profile = '/profile';
   static const settings = '/settings';
+
+  // Teacher / Clases
   static const teacherHome = '/teacher';
   static const classes = '/classes';
   static const teacherAnalytics = '/teacher/analytics';
   static const teacherClassDetail = '/teacher/class-detail';
   static const teacherStudentDetail = '/teacher/student-detail';
-  static const aiPhotoFormulas = '/ai/photo-formulas';
-  static const iaFormulasFromPhoto = '/ia/formulas-from-photo';
-  static const iaGraphsFromPhoto = '/ia/graphs-from-photo';
 
+  // Admin (pantalla oculta de importación)
+  static const importDebug = '/admin/import-formulas-debug';
 
+  // Para rutas “especiales” (como la oculta de debug)
+  static Route<dynamic>? onGenerateRoute(RouteSettings settings) {
+    switch (settings.name) {
+      case importDebug:
+        return MaterialPageRoute(
+          builder: (_) => const ImportFormulasDebugScreen(),
+          settings: settings,
+        );
+    }
+    return null; // deja que Flutter pruebe 'routes' y onUnknownRoute
+  }
 
+  // Tabla de rutas normales
   static Map<String, WidgetBuilder> get routes => {
     splash: (_) => const SplashScreen(),
-    login: (_) =>  LoginScreen(),
+    login: (_) => LoginScreen(),
     register: (_) => const RegisterScreen(),
     home: (_) => const HomeScreen(),
 
-    // Estas se alcanzan por Navigator.pushNamed desde Home o secciones
+    // Fórmulas
     formulas: (_) => const FormulasScreen(),
     physics: (_) => const PhysicsScreen(),
     math: (_) => const MathScreen(),
     chemistry: (_) => const ChemistryScreen(),
     formulaDetail: (_) => const FormulaDetailScreen(),
     search: (_) => const SearchScreen(),
+
+    // IA
     ia: (_) => const IAScreen(),
-    reps: (_) => const TestScreen(),
+    iaFormulasFromPhoto: (_) => const FormulasFromPhotoScreen(),
+    iaGraphsFromPhoto: (_) => const GraphsFromPhotoScreen(),
+
+    // Otras
+    reps: (_) => const RepsScreen(),
     portfolio: (_) => const PortfolioScreen(),
     test: (_) => const TestScreen(),
     metrics: (_) => const MetricsScreen(),
     profile: (_) => const ProfileScreen(),
     settings: (_) => const SettingsScreen(),
+
+    // Teacher / Clases
     teacherHome: (_) => const TeacherHomeScreen(),
     classes: (_) => const StudentClassesScreen(),
     teacherAnalytics: (_) => const TeacherAnalyticsScreen(),
     teacherStudentDetail: (_) => const TeacherStudentDetailScreen(),
     teacherClassDetail: (_) => const TeacherClassDetailScreen(),
-    aiPhotoFormulas: (_) => const FormulasFromPhotoScreen(),
-    iaGraphsFromPhoto: (_) => const GraphsFromPhotoScreen(),
   };
 }

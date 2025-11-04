@@ -38,6 +38,7 @@ dependencies:
   opencv_4: ^1.0.0             # si vas a hacer geometría en el dispositivo
   lottie: ^3.3.2
   flutter_markdown: ^0.7.3+1
+  flutter_math_fork: ^0.7.0
   flutter:
     sdk: flutter
 
@@ -47,6 +48,7 @@ dependencies:
   firebase_core: ^4.2.0
   firebase_auth: ^6.1.1
   cloud_firestore: ^6.0.3
+  keyboard_actions: ^4.2.0
 
 dev_dependencies:
   flutter_test:
@@ -72,6 +74,7 @@ flutter:
   assets:
     - .env
     - assets/lottie/form.json
+#    - assets/formulas_catalog.json
 
   # To add assets to your application, add an assets section, like this:
   # assets:

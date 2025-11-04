@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../router.dart';
 import 'package:lottie/lottie.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -24,7 +25,12 @@ class _HomeScreenState extends State<HomeScreen> {
     final titles = ['Inicio', 'Explorar', 'Repasos', 'Perfil'];
     return Scaffold(
       appBar: AppBar(
-        title: Text(titles[index]),
+        title: GestureDetector(
+          onLongPress: kDebugMode
+              ? () => Navigator.pushNamed(context, AppRouter.importDebug)
+              : null, // en release no hace nada
+          child: const Text('FormuLearn debug'),
+        ),
       ),
       body: pages[index],
       bottomNavigationBar: NavigationBar(
