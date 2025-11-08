@@ -277,7 +277,7 @@ class _RepsTab extends StatelessWidget {
             title: const Text('Repasos inteligentes'),
             subtitle: const Text('Tarjetas tipo Anki por dificultad'),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.pushNamed(context, AppRouter.reps),
+            onTap: () => Navigator.pushNamed(context, AppRouter.test),
           ),
         ),
       ],
