@@ -108,7 +108,7 @@ class _FormulaDetailScreenState extends State<FormulaDetailScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [const Text('•  '), Expanded(child: Text(c))],
                 ),
-              ))
+              )
                   .toList(),
             ),
           ),
