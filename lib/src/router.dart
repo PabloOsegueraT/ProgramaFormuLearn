@@ -28,12 +28,18 @@ import 'features/metrics/metrics_screen.dart';
 import 'features/profile/profile_screen.dart';
 import 'features/settings/settings_screen.dart';
 
-// Teacher / Clases
+// Teacher / Clases existentes
 import 'features/teacher/teacher_home_screen.dart';
-import 'features/classes/student_classes_screen.dart';
 import 'features/teacher/teacher_analytics_screen.dart';
 import 'features/teacher/teacher_student_detail_screen.dart';
 import 'features/teacher/teacher_class_detail_screen.dart';
+
+// NUEVAS pantallas de clases
+import 'features/classes/student_classes_screen.dart';
+import 'features/classes/create_class_screen.dart';
+import 'features/classes/join_class_screen.dart';
+import 'features/classes/teacher_classes_screen.dart';
+import 'features/classes/class_detail_screen.dart';
 
 // Admin (solo debug)
 import 'features/admin/import_formulas_debug_screen.dart';
@@ -66,17 +72,23 @@ class AppRouter {
   static const profile = '/profile';
   static const settings = '/settings';
 
-  // Teacher / Clases
+  // Teacher / Clases (existentes)
   static const teacherHome = '/teacher';
-  static const classes = '/classes';
   static const teacherAnalytics = '/teacher/analytics';
   static const teacherClassDetail = '/teacher/class-detail';
   static const teacherStudentDetail = '/teacher/student-detail';
 
+  // Clases (nueva organización)
+  static const classes = '/classes';            // lista de clases del alumno
+  static const joinClass = '/classes/join';     // alumno se une con código
+  static const createClass = '/classes/create'; // profe crea clase
+  static const classDetail = '/classes/detail'; // detalle con métricas
+  static const teacherClasses = '/teacher/classes'; // lista de clases del profe
+
   // Admin (pantalla oculta de importación)
   static const importDebug = '/admin/import-formulas-debug';
 
-  // Para rutas “especiales” (como la oculta de debug)
+  // Rutas generadas dinámicamente (por ahora solo la de import debug)
   static Route<dynamic>? onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {
       case importDebug:
@@ -85,11 +97,13 @@ class AppRouter {
           settings: settings,
         );
     }
-    return null; // deja que Flutter pruebe 'routes' y onUnknownRoute
+    // Si no matchea aquí, Flutter usa 'routes' y luego onUnknownRoute
+    return null;
   }
 
   // Tabla de rutas normales
   static Map<String, WidgetBuilder> get routes => {
+    // Core
     splash: (_) => const SplashScreen(),
     login: (_) => LoginScreen(),
     register: (_) => const RegisterScreen(),
@@ -108,7 +122,7 @@ class AppRouter {
     iaFormulasFromPhoto: (_) => const FormulasFromPhotoScreen(),
     iaGraphsFromPhoto: (_) => const GraphsFromPhotoScreen(),
 
-    // Otras
+    // Otras secciones
     reps: (_) => const RepsScreen(),
     portfolio: (_) => const PortfolioScreen(),
     test: (_) => const TestScreen(),
@@ -116,11 +130,17 @@ class AppRouter {
     profile: (_) => const ProfileScreen(),
     settings: (_) => const SettingsScreen(),
 
-    // Teacher / Clases
+    // Teacher / Clases (existentes)
     teacherHome: (_) => const TeacherHomeScreen(),
-    classes: (_) => const StudentClassesScreen(),
     teacherAnalytics: (_) => const TeacherAnalyticsScreen(),
     teacherStudentDetail: (_) => const TeacherStudentDetailScreen(),
     teacherClassDetail: (_) => const TeacherClassDetailScreen(),
+
+    // NUEVAS vistas de clases
+    classes: (_) => const StudentClassesScreen(),      // lista alumno
+    joinClass: (_) => const JoinClassScreen(),         // unirse con código
+    createClass: (_) => const CreateClassScreen(),     // crear clase
+    teacherClasses: (_) => const TeacherClassesScreen(), // lista profe
+    classDetail: (_) => const ClassDetailScreen(),     // detalle clase
   };
 }

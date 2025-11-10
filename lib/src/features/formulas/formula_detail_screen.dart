@@ -8,6 +8,7 @@ import '../../widgets/inline_math_text.dart';
 
 class FormulaDetailScreen extends StatefulWidget {
   const FormulaDetailScreen({super.key});
+
   @override
   State<FormulaDetailScreen> createState() => _FormulaDetailScreenState();
 }
@@ -15,8 +16,8 @@ class FormulaDetailScreen extends StatefulWidget {
 class _FormulaDetailScreenState extends State<FormulaDetailScreen> {
   final _iaCtrl = TextEditingController();
   bool _aiLoading = false;
-  _GenExample? _gen;      // Ejemplo estructurado
-  String? _aiRaw;         // Fallback texto libre
+  _GenExample? _gen; // Ejemplo estructurado
+  String? _aiRaw; // Fallback texto libre
 
   @override
   void dispose() {
@@ -52,7 +53,13 @@ class _FormulaDetailScreenState extends State<FormulaDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+                  Text(
+                    title,
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleLarge
+                        ?.copyWith(fontWeight: FontWeight.w800),
+                  ),
                   const SizedBox(height: 10),
                   Container(
                     width: double.infinity,
@@ -75,7 +82,12 @@ class _FormulaDetailScreenState extends State<FormulaDetailScreen> {
 
           // Explicación
           const _SectionTitle('Explicación'),
-          _SectionCard(child: Text(explanation, style: const TextStyle(height: 1.35))),
+          _SectionCard(
+            child: Text(
+              explanation,
+              style: const TextStyle(height: 1.35),
+            ),
+          ),
           const SizedBox(height: 12),
 
           // Variables y unidades
@@ -83,12 +95,17 @@ class _FormulaDetailScreenState extends State<FormulaDetailScreen> {
           _SectionCard(
             child: Column(
               children: variables.entries
-                  .map((e) => ListTile(
-                dense: true,
-                leading: const Icon(Icons.label_outline),
-                title: Text(e.key, style: const TextStyle(fontWeight: FontWeight.w600)),
-                subtitle: Text(e.value.isEmpty ? '—' : e.value),
-              ))
+                  .map(
+                    (e) => ListTile(
+                  dense: true,
+                  leading: const Icon(Icons.label_outline),
+                  title: Text(
+                    e.key,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Text(e.value.isEmpty ? '—' : e.value),
+                ),
+              )
                   .toList(),
             ),
           ),
@@ -107,7 +124,10 @@ class _FormulaDetailScreenState extends State<FormulaDetailScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 4),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [const Text('•  '), Expanded(child: Text(c))],
+                    children: [
+                      const Text('•  '),
+                      Expanded(child: Text(c)),
+                    ],
                   ),
                 ),
               )
@@ -128,7 +148,8 @@ class _FormulaDetailScreenState extends State<FormulaDetailScreen> {
                   maxLines: 4,
                   decoration: InputDecoration(
                     labelText: 'Crea un ejemplo con…',
-                    hintText: 'p.ej. “Checo Pérez”, “un dron en ascenso”, “un ciclista en subida”…',
+                    hintText:
+                    'p.ej. “Checo Pérez”, “un dron en ascenso”, “un ciclista en subida”…',
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
@@ -187,26 +208,38 @@ class _FormulaDetailScreenState extends State<FormulaDetailScreen> {
   }) async {
     final themeHint = _iaCtrl.text.trim();
     if (themeHint.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Escribe un tema: p.ej. “Checo Pérez”.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Escribe un tema: p.ej. “Checo Pérez”.')),
+      );
       return;
     }
+
     final apiKey = Env.geminiApiKey;
     if (apiKey.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Falta GEMINI_API_KEY en .env')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Falta GEMINI_API_KEY en .env')),
+      );
       return;
     }
 
-    setState(() { _aiLoading = true; _gen = null; _aiRaw = null; });
+    setState(() {
+      _aiLoading = true;
+      _gen = null;
+      _aiRaw = null;
+    });
 
     try {
-      final model = GenerativeModel(model: 'gemini-2.5-flash', apiKey: apiKey);
+      final model = GenerativeModel(
+        model: 'gemini-2.5-flash',
+        apiKey: apiKey,
+      );
 
       final ctx = {
         'formulaTitle': title,
         'formulaExpression': expression, // texto o LaTeX
-        'variables': variables,          // {symbol: meaning}
+        'variables': variables, // {symbol: meaning}
         'conditions': conditions,
-        'userTheme': themeHint           // ej: "Checo Pérez"
+        'userTheme': themeHint, // ej: "Checo Pérez"
       };
 
       // PROMPT: construir un ejemplo/escenario con el tema del usuario
@@ -216,16 +249,16 @@ Crea UN SOLO ejemplo contextual breve (2–3 frases de escenario) que use explí
 
 Devuelve SOLO JSON VÁLIDO (sin backticks) con este esquema:
 {
-  "exampleTitle": "string",                // título corto del ejemplo
-  "scenario": "string",                    // historia breve usando el tema del usuario
-  "given": [                               // datos que asumiste para resolver
-    {"symbol":"v","value":"90 m/s","note":"velocidad constante"}  // note opcional
+  "exampleTitle": "string",
+  "scenario": "string",
+  "given": [
+    {"symbol":"v","value":"90 m/s","note":"velocidad constante"}
   ],
-  "unknown": "string",                     // qué se calcula (por símbolo o texto)
-  "steps": ["...", "..."],                 // 4–8 pasos claros
-  "resultLatex": "string",                 // LaTeX del resultado (preferido)
-  "resultText": "string",                  // si no hay LaTeX, texto
-  "explanation": "string"                  // interpretación de 1–3 líneas
+  "unknown": "string",
+  "steps": ["...", "..."],
+  "resultLatex": "string",
+  "resultText": "string",
+  "explanation": "string"
 }
 
 Reglas:
@@ -242,18 +275,31 @@ Reglas:
 
       final raw = (resp.text ?? '').trim();
       final clean = _stripCodeFences(raw);
+
       _GenExample? parsed;
-      try { parsed = _GenExample.fromJson(jsonDecode(clean) as Map<String, dynamic>); }
-      catch (_) { parsed = null; }
+      try {
+        parsed = _GenExample.fromJson(jsonDecode(clean) as Map<String, dynamic>);
+      } catch (_) {
+        parsed = null;
+      }
 
       if (!mounted) return;
-      setState(() { _gen = parsed; _aiRaw = parsed == null ? raw : null; });
+
+      setState(() {
+        _gen = parsed;
+        _aiRaw = parsed == null ? raw : null;
+      });
     } catch (e) {
       if (!mounted) return;
-      setState(() { _gen = null; _aiRaw = 'Error IA: $e'; });
+      setState(() {
+        _gen = null;
+        _aiRaw = 'Error IA: $e';
+      });
     } finally {
       if (!mounted) return;
-      setState(() => _aiLoading = false);
+      setState(() {
+        _aiLoading = false;
+      });
     }
   }
 
@@ -265,19 +311,31 @@ Reglas:
     }
     final s = v.toString().trim();
     if (s.isEmpty) return const [];
-    final parts = s.split(RegExp(r'[\n•,]+')).map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+    final parts = s
+        .split(RegExp(r'[\n•,]+'))
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
     return parts.isEmpty ? <String>[s] : parts;
   }
 
   Map<String, String> _asStringMap(dynamic v) {
     if (v == null) return const {};
-    if (v is Map) return v.map((k, val) => MapEntry(k.toString(), val.toString()));
+    if (v is Map) {
+      return v.map((k, val) => MapEntry(k.toString(), val.toString()));
+    }
     if (v is List) {
       final out = <String, String>{};
       for (final item in v) {
         if (item is Map) {
-          final key = (item['symbol'] ?? item['key'] ?? item['name'] ?? '').toString();
-          final val = (item['meaning'] ?? item['value'] ?? item['desc'] ?? item['fromText'] ?? '').toString();
+          final key =
+          (item['symbol'] ?? item['key'] ?? item['name'] ?? '').toString();
+          final val = (item['meaning'] ??
+              item['value'] ??
+              item['desc'] ??
+              item['fromText'] ??
+              '')
+              .toString();
           if (key.isNotEmpty) out[key] = val;
         }
       }
@@ -288,7 +346,8 @@ Reglas:
       final kv = part.split(':');
       if (kv.isEmpty) continue;
       final k = kv.first.trim();
-      final val = kv.length > 1 ? kv.sublist(1).join(':').trim() : '';
+      final val =
+      kv.length > 1 ? kv.sublist(1).join(':').trim() : '';
       if (k.isNotEmpty) out[k] = val;
     }
     return out;
@@ -305,15 +364,23 @@ Reglas:
 class _SectionTitle extends StatelessWidget {
   final String text;
   const _SectionTitle(this.text);
+
   @override
   Widget build(BuildContext context) {
-    return Text(text, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800));
+    return Text(
+      text,
+      style: Theme.of(context)
+          .textTheme
+          .titleMedium
+          ?.copyWith(fontWeight: FontWeight.w800),
+    );
   }
 }
 
 class _SectionCard extends StatelessWidget {
   final Widget child;
   const _SectionCard({required this.child});
+
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -334,26 +401,43 @@ class _AiResultCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       if (gen.exampleTitle.isNotEmpty)
-        Text(gen.exampleTitle, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+        Text(
+          gen.exampleTitle,
+          style: Theme.of(context)
+              .textTheme
+              .titleMedium
+              ?.copyWith(fontWeight: FontWeight.w800),
+        ),
       if (gen.scenario.isNotEmpty) ...[
         const SizedBox(height: 6),
         InlineMathText(
           gen.scenario,
-          style: TextStyle(color: Colors.black.withOpacity(.75), fontStyle: FontStyle.italic),
+          style: TextStyle(
+            color: Colors.black.withOpacity(.75),
+            fontStyle: FontStyle.italic,
+          ),
         ),
       ],
       const SizedBox(height: 10),
 
       if (gen.given.isNotEmpty || gen.unknown.isNotEmpty) ...[
         Wrap(
-          spacing: 8, runSpacing: 6,
+          spacing: 8,
+          runSpacing: 6,
           children: [
-            ...gen.given.map((g) => Chip(
-              avatar: const Icon(Icons.info_outline, size: 18),
-              label: Text('${g.symbol}: ${g.value}${g.note != null && g.note!.isNotEmpty ? ' (${g.note})' : ''}'),
-            )),
+            ...gen.given.map(
+                  (g) => Chip(
+                avatar: const Icon(Icons.info_outline, size: 18),
+                label: Text(
+                  '${g.symbol}: ${g.value}${g.note != null && g.note!.isNotEmpty ? ' (${g.note})' : ''}',
+                ),
+              ),
+            ),
             if (gen.unknown.isNotEmpty)
-              Chip(avatar: const Icon(Icons.help_outline, size: 18), label: Text('Incógnita: ${gen.unknown}')),
+              Chip(
+                avatar: const Icon(Icons.help_outline, size: 18),
+                label: Text('Incógnita: ${gen.unknown}'),
+              ),
           ],
         ),
         const SizedBox(height: 10),
@@ -362,17 +446,19 @@ class _AiResultCard extends StatelessWidget {
       if (gen.steps.isNotEmpty) ...[
         const Text('Pasos', style: TextStyle(fontWeight: FontWeight.w700)),
         const SizedBox(height: 6),
-        ...gen.steps.map((s) => Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('•  '),
-              const SizedBox(width: 2),
-              Expanded(child: InlineMathText(s)), // ← renderiza LaTeX inline
-            ],
+        ...gen.steps.map(
+              (s) => Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('•  '),
+                const SizedBox(width: 2),
+                Expanded(child: InlineMathText(s)),
+              ],
+            ),
           ),
-        )),
+        ),
         const SizedBox(height: 10),
       ],
 
@@ -381,7 +467,7 @@ class _AiResultCard extends StatelessWidget {
       const SizedBox(height: 6),
       Builder(
         builder: (context) {
-          final scheme = Theme.of(context).colorScheme;
+          final cs = Theme.of(context).colorScheme;
 
           final rawText = (gen.resultText ?? '').trim();
           final cleanedText = _cleanFences(_stripLabel(rawText));
@@ -397,7 +483,9 @@ class _AiResultCard extends StatelessWidget {
           final extracted = _pickLatex(cleanedText);
           var latex = preferLatex.isNotEmpty
               ? preferLatex
-              : (extracted != null ? _balanceBraces(extracted) : _asciiToLatex(cleanedText));
+              : (extracted != null
+              ? _balanceBraces(extracted)
+              : _asciiToLatex(cleanedText));
 
           final hasAnything = latex.trim().isNotEmpty || cleanedText.isNotEmpty;
 
@@ -408,9 +496,9 @@ class _AiResultCard extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: scheme.primaryContainer.withOpacity(.35),
+                  color: cs.primaryContainer.withOpacity(.35),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: scheme.outline.withOpacity(.12)),
+                  border: Border.all(color: cs.outline.withOpacity(.12)),
                 ),
                 child: hasAnything
                     ? Center(child: FormulaMath(latex, fontSize: 22))
@@ -433,8 +521,8 @@ class _AiResultCard extends StatelessWidget {
 
 // ====== Modelo del JSON IA (acepta claves alternativas) ======
 class _GenExample {
-  final String exampleTitle;    // antes problemTitle
-  final String scenario;        // historia/escena
+  final String exampleTitle; // antes problemTitle
+  final String scenario; // historia/escena
   final List<_Given> given;
   final String unknown;
   final List<String> steps;
@@ -454,11 +542,16 @@ class _GenExample {
   });
 
   factory _GenExample.fromJson(Map<String, dynamic> m) => _GenExample(
-    exampleTitle: (m['exampleTitle'] ?? m['problemTitle'] ?? '').toString(),
+    exampleTitle:
+    (m['exampleTitle'] ?? m['problemTitle'] ?? '').toString(),
     scenario: (m['scenario'] ?? '').toString(),
-    given: ((m['given'] as List?) ?? []).map((e) => _Given.fromJson(e as Map<String, dynamic>)).toList(),
+    given: ((m['given'] as List?) ?? [])
+        .map((e) => _Given.fromJson(e as Map<String, dynamic>))
+        .toList(),
     unknown: (m['unknown'] ?? '').toString(),
-    steps: ((m['steps'] as List?) ?? []).map((e) => e.toString()).toList(),
+    steps: ((m['steps'] as List?) ?? [])
+        .map((e) => e.toString())
+        .toList(),
     resultLatex: (m['resultLatex'] as String?)?.toString(),
     resultText: (m['resultText'] as String?)?.toString(),
     explanation: (m['explanation'] as String?)?.toString(),
@@ -478,6 +571,7 @@ class _Given {
   );
 }
 
+// Bloque reutilizable opcional (no es obligatorio usarlo)
 class _ResultBlock extends StatelessWidget {
   const _ResultBlock({required this.text});
   final String text;
@@ -486,7 +580,7 @@ class _ResultBlock extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
-    final cleaned = _cleanFences(_stripLabel(text));
+    final cleaned = _cleanFences(text);
     final latex = _pickLatex(cleaned) ?? _asciiToLatex(cleaned);
 
     return Column(
@@ -494,7 +588,6 @@ class _ResultBlock extends StatelessWidget {
       children: [
         const Text('Resultado', style: TextStyle(fontWeight: FontWeight.w800)),
         const SizedBox(height: 8),
-        // Caja principal con la expresión grande y centrada
         Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
@@ -506,78 +599,24 @@ class _ResultBlock extends StatelessWidget {
           child: Center(
             child: FormulaMath(
               latex,
-              fontSize: 24, // sube/baja a gusto
+              fontSize: 24,
             ),
           ),
         ),
-        // (Opcional) abajo mostramos el texto completo con LaTeX inline por si llegó con explicación mezclada
         const SizedBox(height: 8),
         InlineMathText(
           cleaned,
           fontSize: 16,
-          style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color),
+          style: TextStyle(
+            color: Theme.of(context).textTheme.bodyMedium?.color,
+          ),
         ),
       ],
     );
   }
-
-  // --- Helpers ---
-
-  // Quita ```…```, ```json…```, “Resultado:”, etc.
-  static String _cleanFences(String s) {
-    var t = s.trim();
-    // elimina bloques de código fenceados
-    t = t.replaceAll(RegExp(r'^```[a-zA-Z]*'), '').replaceAll('```', '');
-    return t.trim();
-  }
-
-  static String _stripLabel(String s) {
-    var t = s.trim();
-    t = t.replaceFirst(RegExp(r'^(Resultado|Resultado\:)\s*', caseSensitive: false), '');
-    t = t.replaceFirst(RegExp(r'^(Result|Answer|Output)\s*\:\s*', caseSensitive: false), '');
-    return t.trim();
-  }
-
-  /// Devuelve el PRIMER bloque LaTeX si existe: $...$, $$...$$, \(...\) o \[...\]
-  static String? _pickLatex(String s) {
-    // normaliza \(..\), \[..\]
-    var t = s.replaceAll(r'\(', r'$').replaceAll(r'\)', r'$')
-        .replaceAll(r'\[', r'$$').replaceAll(r'\]', r'$$');
-    final m = RegExp(r'(\${1,2})(.+?)\1').firstMatch(t);
-    if (m != null) {
-      return (m.group(2) ?? '').trim();
-    }
-    return null;
-  }
-
-  /// Convierte “ascii-math” simple → LaTeX razonable:
-  /// v^2 -> v^{2},  a·b -> a \cdot b,  ≈ -> \approx,  m/s -> \text{ m/s}
-  static String _asciiToLatex(String s) {
-    var t = s;
-
-    // 1) puntos medios/asteriscos → \cdot
-    t = t.replaceAll('·', r'\cdot ');
-    t = t.replaceAll('*', r'\cdot ');
-
-    // 2) aproximación
-    t = t.replaceAll('≈', r'\approx ');
-
-    // 3) unidades típicas “m/s”, “m^2/s^2”, “kg·m/s^2” sin volvernos locos
-    // protegemos patrones de unidad simples:
-    t = t.replaceAllMapped(RegExp(r'(?<=\d|\))\s*(m/s|m\/s)\b'), (m) => r'\text{ m/s}');
-    t = t.replaceAllMapped(RegExp(r'\bJ\b'), (m) => r'\text{ J}');
-
-    // 4) exponentes simples x^2, v0^2, 10^3 -> x^{2}, v_0^{2}, 10^{3}
-    // índice con dígitos tipo v0 -> v_{0}
-    t = t.replaceAllMapped(RegExp(r'([A-Za-z])(\d+)'), (m) => '${m[1]}_{${m[2]}}');
-    t = t.replaceAllMapped(RegExp(r'([A-Za-z0-9\}\)])\^(-?\d+(\.\d+)?)'),
-            (m) => '${m[1]}^{${m[2]}}');
-
-    // 5) \Delta x, \alpha, etc. (si ya vienen, se respetan)
-    // 6) Igualdades y números quedan como están
-    return t.trim().isEmpty ? r'\text{(sin datos)}' : t.trim();
-  }
 }
+
+// ====== Helpers globales reutilizados ======
 
 // Quita ```...```, ```json...``` y similares
 String _cleanFences(String s) {
@@ -590,8 +629,10 @@ String _cleanFences(String s) {
 // Quita prefijos "Resultado:", "Result:", etc.
 String _stripLabel(String s) {
   var t = s.trim();
-  t = t.replaceFirst(RegExp(r'^(Resultado|Resultado\:)\s*', caseSensitive: false), '');
-  t = t.replaceFirst(RegExp(r'^(Result|Answer|Output)\s*\:\s*', caseSensitive: false), '');
+  t = t.replaceFirst(
+      RegExp(r'^(Resultado|Resultado\:)\s*', caseSensitive: false), '');
+  t = t.replaceFirst(
+      RegExp(r'^(Result|Answer|Output)\s*\:\s*', caseSensitive: false), '');
   return t.trim();
 }
 
@@ -610,7 +651,7 @@ String? _pickLatex(String s) {
 // Conversión rápida ASCII → LaTeX razonable
 String _asciiToLatex(String s) {
   var t = s.trim();
-  if (t.isEmpty) return '';
+  if (t.isEmpty) return r'\text{(sin datos)}';
 
   // productos
   t = t.replaceAll('·', r'\cdot ');
@@ -623,31 +664,43 @@ String _asciiToLatex(String s) {
   t = t.replaceAllMapped(RegExp(r'([A-Za-z])(\d+)'), (m) => '${m[1]}_{${m[2]}}');
 
   // exponentes x^2, v0^2, 10^3 -> ^{...}
-  t = t.replaceAllMapped(RegExp(r'([A-Za-z0-9\}\)])\^(-?\d+(\.\d+)?)'),
-          (m) => '${m[1]}^{${m[2]}}');
+  t = t.replaceAllMapped(
+      RegExp(r'([A-Za-z0-9\}\)])\^(-?\d+(\.\d+)?)'), (m) => '${m[1]}^{${m[2]}}');
 
   // unidades comunes
-  t = t.replaceAllMapped(RegExp(r'(?<=\d|\))\s*(m/s|m\/s)\b'), (m) => r'\text{ m/s}');
+  t = t.replaceAllMapped(
+      RegExp(r'(?<=\d|\))\s*(m/s|m\/s)\b'), (m) => r'\text{ m/s}');
   t = t.replaceAllMapped(RegExp(r'\bJ\b'), (m) => r'\text{ J}');
 
   return t;
 }
 
+// Quita delimitadores $...$, $$...$$, \(...\), \[...\]
 String _stripMathDelimiters(String s) {
   var t = s.trim();
-  if (t.startsWith(r'\(') && t.endsWith(r'\)')) return t.substring(2, t.length - 2).trim();
-  if (t.startsWith(r'\[') && t.endsWith(r'\]')) return t.substring(2, t.length - 2).trim();
-  if (t.startsWith(r'$$') && t.endsWith(r'$$')) return t.substring(2, t.length - 2).trim();
-  if (t.startsWith(r'$')  && t.endsWith(r'$'))  return t.substring(1, t.length - 1).trim();
+  if (t.startsWith(r'\(') && t.endsWith(r'\)')) {
+    return t.substring(2, t.length - 2).trim();
+  }
+  if (t.startsWith(r'\[') && t.endsWith(r'\]')) {
+    return t.substring(2, t.length - 2).trim();
+  }
+  if (t.startsWith(r'$$') && t.endsWith(r'$$')) {
+    return t.substring(2, t.length - 2).trim();
+  }
+  if (t.startsWith(r'$') && t.endsWith(r'$')) {
+    return t.substring(1, t.length - 1).trim();
+  }
   return t.replaceAll(RegExp(r'^\$+|\$+$'), '').trim();
 }
 
+// Balancea llaves { } en expresiones LaTeX
 String _balanceBraces(String s) {
-  var t = s;
-  final opens = RegExp(r'\{').allMatches(t).length;
-  final closes = RegExp(r'\}').allMatches(t).length;
-  if (closes < opens) {
-    t = '$t${'}' * (opens - closes)}';
-  }
-  return t.trim();
+  final opens = RegExp(r'\{').allMatches(s).length;
+  final closes = RegExp(r'\}').allMatches(s).length;
+
+  if (closes >= opens) return s.trim();
+
+  final missing = opens - closes;
+  final extra = List.filled(missing, '}').join();
+  return (s + extra).trim();
 }
