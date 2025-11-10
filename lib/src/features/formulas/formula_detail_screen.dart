@@ -102,11 +102,13 @@ class _FormulaDetailScreenState extends State<FormulaDetailScreen> {
               children: conditions.isEmpty
                   ? [const Text('—')]
                   : conditions
-                  .map((c) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [const Text('•  '), Expanded(child: Text(c))],
+                  .map(
+                    (c) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [const Text('•  '), Expanded(child: Text(c))],
+                  ),
                 ),
               )
                   .toList(),
