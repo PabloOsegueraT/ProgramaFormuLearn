@@ -1,7 +1,8 @@
-
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+
 import '../../services/class_service.dart';
+import '../../data/classes/class_model.dart';
 
 class CreateClassScreen extends StatefulWidget {
   const CreateClassScreen({super.key});
@@ -11,12 +12,11 @@ class CreateClassScreen extends StatefulWidget {
 }
 
 class _CreateClassScreenState extends State<CreateClassScreen> {
-  final _formKey = GlobalKey<FormState>();
   final _gradeCtrl = TextEditingController();
   final _groupCtrl = TextEditingController();
   final _subjectCtrl = TextEditingController();
+
   bool _loading = false;
-  String? _createdCode;
 
   @override
   void dispose() {
@@ -26,8 +26,8 @@ class _CreateClassScreenState extends State<CreateClassScreen> {
     super.dispose();
   }
 
-  Future<void> _onSubmit() async {
-    if (!_formKey.currentState!.validate()) return;
+  Future<void> _create() async {
+    if (_loading) return;
 
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
@@ -37,83 +37,128 @@ class _CreateClassScreenState extends State<CreateClassScreen> {
       return;
     }
 
+    final grade = _gradeCtrl.text.trim();
+    final group = _groupCtrl.text.trim().toUpperCase();
+    final subject = _subjectCtrl.text.trim();
+
+    if (grade.isEmpty || group.isEmpty || subject.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Completa grado, grupo y materia.')),
+      );
+      return;
+    }
+
     setState(() => _loading = true);
 
     try {
-      final cls = await ClassService.instance.createClass(
+      final ClassRoom cls = await ClassService.instance.createClass(
         teacherId: user.uid,
-        subject: _subjectCtrl.text.trim(),
-        grade: _gradeCtrl.text.trim(),
-        group: _groupCtrl.text.trim(),
+        subject: subject,
+        grade: grade,
+        group: group,
       );
-      setState(() => _createdCode = cls.code);
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content:
+          Text('Clase creada: ${cls.displayName}\nCódigo: ${cls.code}'),
+        ),
+      );
+
+      Navigator.pop(context, true);
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error al crear clase: $e')),
       );
     } finally {
-      setState(() => _loading = false);
+      if (mounted) {
+        setState(() => _loading = false);
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Crear clase')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
+      appBar: AppBar(
+        title: const Text('Crear clase'),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Form(
-              key: _formKey,
-              child: Column(
-                children: [
-                  TextFormField(
-                    controller: _gradeCtrl,
-                    decoration: const InputDecoration(labelText: 'Grado'),
-                    validator: (v) =>
-                    v == null || v.isEmpty ? 'Obligatorio' : null,
-                  ),
-                  TextFormField(
-                    controller: _groupCtrl,
-                    decoration: const InputDecoration(labelText: 'Grupo'),
-                    validator: (v) =>
-                    v == null || v.isEmpty ? 'Obligatorio' : null,
-                  ),
-                  TextFormField(
-                    controller: _subjectCtrl,
-                    decoration: const InputDecoration(labelText: 'Materia'),
-                    validator: (v) =>
-                    v == null || v.isEmpty ? 'Obligatorio' : null,
-                  ),
-                  const SizedBox(height: 16),
-                  FilledButton(
-                    onPressed: _loading ? null : _onSubmit,
-                    child: _loading
-                        ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                        : const Text('Crear clase'),
-                  ),
-                ],
-              ),
+            Text(
+              'Completa los datos para crear tu clase y compartir el código con tus alumnos.',
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(color: cs.onSurface.withOpacity(.75)),
             ),
-            if (_createdCode != null) ...[
-              const SizedBox(height: 24),
-              const Text('Código para compartir:',
-                  style: TextStyle(fontWeight: FontWeight.w600)),
-              const SizedBox(height: 8),
-              SelectableText(
-                _createdCode!,
-                style: const TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 2,
+            const SizedBox(height: 20),
+            Card(
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    TextField(
+                      controller: _gradeCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Grado',
+                        hintText: 'Ej. 1, 2, 3…',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _groupCtrl,
+                      textCapitalization: TextCapitalization.characters,
+                      decoration: const InputDecoration(
+                        labelText: 'Grupo',
+                        hintText: 'Ej. A, B, C…',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _subjectCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Materia',
+                        hintText: 'Ej. Física, Matemáticas…',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
+            ),
+            const SizedBox(height: 28),
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: FilledButton(
+                onPressed: _loading ? null : _create,
+                child: _loading
+                    ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+                    : const Text(
+                  'Crear clase',
+                  style: TextStyle(fontSize: 16),
+                ),
+              ),
+            ),
           ],
         ),
       ),

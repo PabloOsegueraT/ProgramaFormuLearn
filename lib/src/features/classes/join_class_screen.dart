@@ -1,6 +1,6 @@
-// lib/src/features/classes/join_class_screen.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+
 import '../../services/class_service.dart';
 
 class JoinClassScreen extends StatefulWidget {
@@ -20,14 +20,21 @@ class _JoinClassScreenState extends State<JoinClassScreen> {
     super.dispose();
   }
 
-  Future<void> _onJoin() async {
-    final code = _codeCtrl.text.trim().toUpperCase();
-    if (code.isEmpty) return;
+  Future<void> _join() async {
+    if (_loading) return;
 
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Debes iniciar sesión.')),
+      );
+      return;
+    }
+
+    final code = _codeCtrl.text.trim();
+    if (code.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Ingresa un código de clase.')),
       );
       return;
     }
@@ -39,17 +46,22 @@ class _JoinClassScreenState extends State<JoinClassScreen> {
         studentId: user.uid,
         code: code,
       );
+
+      if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Te uniste a la clase correctamente.')),
+        const SnackBar(
+            content: Text('Te uniste a la clase correctamente.')),
       );
-      _codeCtrl.clear();
-      Navigator.pop(context); // vuelve a la lista de clases
+
+      Navigator.pop(context, true);
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('No se pudo unir: $e')),
+        SnackBar(content: Text('Error al unirse: $e')),
       );
     } finally {
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -61,24 +73,33 @@ class _JoinClassScreenState extends State<JoinClassScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
+            const Text(
+              'Ingresa el código que te compartió tu profesor.',
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
             TextField(
               controller: _codeCtrl,
               textCapitalization: TextCapitalization.characters,
               decoration: const InputDecoration(
                 labelText: 'Código de clase',
-                hintText: 'Ejemplo: ABC123',
+                hintText: 'Ej. ABC123',
+                border: OutlineInputBorder(),
               ),
             ),
-            const SizedBox(height: 16),
-            FilledButton(
-              onPressed: _loading ? null : _onJoin,
-              child: _loading
-                  ? const SizedBox(
-                height: 20,
-                width: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-                  : const Text('Unirse a la clase'),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: _loading ? null : _join,
+                child: _loading
+                    ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+                    : const Text('Unirse'),
+              ),
             ),
           ],
         ),
